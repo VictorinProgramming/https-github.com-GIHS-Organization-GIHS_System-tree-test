@@ -42,7 +42,6 @@ import { apiBackendService } from '../../services/apiBackendService';
 import { detectDeviceCategory, DeviceCategory } from '../../utils/geolocationAndDevice';
 import { evaluatePassword } from '../../utils/passwordPolicy';
 import { GIHSLogo } from '../GIHSLogo';
-import { useSystemLogo } from '../../hooks/useSystemLogo';
 
 interface SettingsViewProps {
   currentUser: Collaborator;
@@ -55,23 +54,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'perfil' | 'facial' | 'ponto' | 'postgres' | 'branding'>('perfil');
 
-  // System Logo & Branding from PostgreSQL
-  const { logoData, isLoading: isLogoLoading, updateLogoInPostgres, resetLogoInPostgres } = useSystemLogo();
-  const [customTagline, setCustomTagline] = useState(logoData.tagline || 'Enterprise System . 100% Monitorado');
-  const [customTaglineColor, setCustomTaglineColor] = useState(logoData.tagline_color || '#00A6FC');
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(logoData.logo_url || null);
-  const [logoFileMsg, setLogoFileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isSavingLogo, setIsSavingLogo] = useState(false);
-  const logoFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sync state when logoData updates
-  useEffect(() => {
-    if (logoData) {
-      setCustomTagline(logoData.tagline || 'Enterprise System . 100% Monitorado');
-      setCustomTaglineColor(logoData.tagline_color || '#00A6FC');
-      setLogoPreviewUrl(logoData.logo_url || null);
-    }
-  }, [logoData]);
 
   // Active User profile form state - respects whoever is currently logged in
   const [name, setName] = useState(currentUser.name || '');
@@ -721,98 +703,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     document.body.removeChild(link);
   };
 
-  // Logo & Branding Handlers
-  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setLogoFileMsg({ type: 'error', text: 'A imagem deve ter no máximo 5MB.' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const dataUrl = evt.target?.result as string;
-      setLogoPreviewUrl(dataUrl);
-      setIsSavingLogo(true);
-      try {
-        const result = await updateLogoInPostgres({
-          title: 'GIHS SYSTEMS',
-          tagline: customTagline.trim() || 'Enterprise System . 100% Monitorado',
-          tagline_color: customTaglineColor,
-          logo_url: dataUrl,
-          is_custom: true,
-        });
-        if (result.success) {
-          setLogoFileMsg({
-            type: 'success',
-            text: `Arquivo "${file.name}" gravado com sucesso no PostgreSQL e ativado imediatamente no sistema!`
-          });
-        } else {
-          setLogoFileMsg({
-            type: 'error',
-            text: result.error || 'Erro ao persistir logotipo no PostgreSQL.'
-          });
-        }
-      } catch (err: any) {
-        setLogoFileMsg({ type: 'error', text: err.message || 'Erro inesperado ao salvar no PostgreSQL.' });
-      } finally {
-        setIsSavingLogo(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
-  const handleSaveLogoToPostgres = async () => {
-    setIsSavingLogo(true);
-    setLogoFileMsg(null);
-    try {
-      const result = await updateLogoInPostgres({
-        title: 'GIHS SYSTEMS',
-        tagline: customTagline.trim() || 'Enterprise System . 100% Monitorado',
-        tagline_color: customTaglineColor,
-        logo_url: logoPreviewUrl,
-        is_custom: Boolean(logoPreviewUrl),
-      });
-      if (result.success) {
-        setLogoFileMsg({
-          type: 'success',
-          text: 'Logotipo corporativo e tagline gravados com sucesso na tabela gihs_core.system_settings do PostgreSQL!'
-        });
-      } else {
-        setLogoFileMsg({
-          type: 'error',
-          text: result.error || 'Erro ao persistir logotipo no PostgreSQL.'
-        });
-      }
-    } catch (err: any) {
-      setLogoFileMsg({ type: 'error', text: err.message || 'Erro inesperado ao salvar no PostgreSQL.' });
-    } finally {
-      setIsSavingLogo(false);
-    }
-  };
-
-  const handleResetLogoToDefault = async () => {
-    setIsSavingLogo(true);
-    setLogoFileMsg(null);
-    try {
-      const result = await resetLogoInPostgres();
-      if (result.success) {
-        setLogoPreviewUrl(null);
-        setCustomTagline('Enterprise System . 100% Monitorado');
-        setCustomTaglineColor('#00A6FC');
-        setLogoFileMsg({
-          type: 'success',
-          text: 'Logotipo oficial GIHS SYSTEMS com tagline "Enterprise System . 100% Monitorado" restaurado no PostgreSQL!'
-        });
-      } else {
-        setLogoFileMsg({ type: 'error', text: result.error || 'Falha ao restaurar logotipo padrão.' });
-      }
-    } catch (err: any) {
-      setLogoFileMsg({ type: 'error', text: err.message });
-    } finally {
-      setIsSavingLogo(false);
-    }
-  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -858,8 +749,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => setActiveTab('perfil')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${activeTab === 'perfil'
-              ? 'bg-[#37558d] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            ? 'bg-[#37558d] text-white shadow-md'
+            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
         >
           <User className="w-4 h-4" />
@@ -869,8 +760,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => setActiveTab('facial')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${activeTab === 'facial'
-              ? 'bg-[#37558d] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            ? 'bg-[#37558d] text-white shadow-md'
+            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
         >
           <Scan className="w-4 h-4" />
@@ -883,8 +774,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => setActiveTab('ponto')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${activeTab === 'ponto'
-              ? 'bg-[#37558d] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            ? 'bg-[#37558d] text-white shadow-md'
+            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
         >
           <Sliders className="w-4 h-4" />
@@ -894,8 +785,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => setActiveTab('postgres')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${activeTab === 'postgres'
-              ? 'bg-[#37558d] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            ? 'bg-[#37558d] text-white shadow-md'
+            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
         >
           <Database className="w-4 h-4" />
@@ -908,8 +799,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => setActiveTab('branding')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${activeTab === 'branding'
-              ? 'bg-[#0067FC] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            ? 'bg-[#0067FC] text-white shadow-md'
+            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
         >
           <Palette className="w-4 h-4 text-[#00A6FC]" />
@@ -1117,8 +1008,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {passwordChangeMsg && (
                 <div
                   className={`mb-4 p-3.5 rounded-2xl text-xs flex items-center gap-2 ${passwordChangeMsg.type === 'success'
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                      : 'bg-rose-50 border border-rose-200 text-rose-800'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border border-rose-200 text-rose-800'
                     }`}
                 >
                   {passwordChangeMsg.type === 'success' ? (
@@ -1217,8 +1108,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {/* Regra 1 */}
                     <div
                       className={`flex items-center gap-2 p-2 rounded-xl text-xs transition-colors border ${passwordEvaluation.rules.minLength.satisfied
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
-                          : 'bg-white border-slate-200 text-slate-500'
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-500'
                         }`}
                     >
                       {passwordEvaluation.rules.minLength.satisfied ? (
@@ -1232,8 +1123,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {/* Regra 2 */}
                     <div
                       className={`flex items-center gap-2 p-2 rounded-xl text-xs transition-colors border ${passwordEvaluation.rules.hasSpecial.satisfied
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
-                          : 'bg-white border-slate-200 text-slate-500'
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-500'
                         }`}
                     >
                       {passwordEvaluation.rules.hasSpecial.satisfied ? (
@@ -1247,8 +1138,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {/* Regra 3 */}
                     <div
                       className={`flex items-center gap-2 p-2 rounded-xl text-xs transition-colors border ${passwordEvaluation.rules.hasNumber.satisfied
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
-                          : 'bg-white border-slate-200 text-slate-500'
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-500'
                         }`}
                     >
                       {passwordEvaluation.rules.hasNumber.satisfied ? (
@@ -1262,8 +1153,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {/* Regra 4 */}
                     <div
                       className={`flex items-center gap-2 p-2 rounded-xl text-xs transition-colors border ${passwordEvaluation.isCompliant
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
-                          : 'bg-white border-slate-200 text-slate-500'
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-500'
                         }`}
                     >
                       {passwordEvaluation.isCompliant ? (
@@ -1286,8 +1177,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="submit"
                     disabled={isSavingPassword || !passwordEvaluation.isCompliant || passwordsMatch !== true}
                     className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all shrink-0 ${!passwordEvaluation.isCompliant || passwordsMatch !== true
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                        : 'bg-[#37558d] hover:bg-[#2c4471] text-white cursor-pointer hover:shadow-md'
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                      : 'bg-[#37558d] hover:bg-[#2c4471] text-white cursor-pointer hover:shadow-md'
                       }`}
                   >
                     {isSavingPassword ? (
@@ -1811,8 +1702,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {migrationResult && (
               <div
                 className={`p-4 rounded-2xl border text-xs flex items-center justify-between animate-in fade-in ${migrationResult.success
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : 'bg-rose-50 border-rose-300 text-rose-900'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -1839,8 +1730,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {syncFeedback && (
               <div
                 className={`p-4 rounded-2xl border text-xs flex items-center justify-between animate-in fade-in ${syncFeedback.success
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-950'
-                    : 'bg-rose-50 border-rose-300 text-rose-900'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-950'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -1867,8 +1758,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {pgStatus.checked && (
               <div
                 className={`p-4 rounded-2xl border text-xs flex items-center justify-between animate-in fade-in ${pgStatus.connected
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                    : 'bg-amber-50 border-amber-200 text-amber-900'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
                   }`}
               >
                 <div className="flex items-center gap-3">
@@ -1942,294 +1833,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* Tab 5: Logotipo & Identidade Visual no PostgreSQL */}
-      {activeTab === 'branding' && (
-        <div className="space-y-6">
-          {/* Header Card */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-[#0067FC]" />
-                  <span>Identidade Visual & Logotipo Corporativo (PostgreSQL)</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Armazenamento centralizado na tabela <code className="text-[#0067FC] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded">gihs_core.system_settings</code> com propagação em tempo real para Barra Lateral, Login e Módulos.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>PostgreSQL DB Sync Ativo</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Notification Feedback */}
-            {logoFileMsg && (
-              <div
-                className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
-                  logoFileMsg.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                    : 'bg-rose-50 border-rose-200 text-rose-900'
-                }`}
-              >
-                {logoFileMsg.type === 'success' ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                )}
-                <div className="flex-1 font-medium">{logoFileMsg.text}</div>
-              </div>
-            )}
-
-            {/* Visual Preview Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-              {/* Preview 1: Fundo Escuro Oficial (Dark Theme) */}
-              <div className="rounded-2xl bg-[#01122D] p-6 border border-[#0A2854] flex flex-col justify-between relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs text-slate-400 font-mono mb-4 pb-2 border-b border-[#0A2854]">
-                  <span>Visualização Dark Oficial (Barra Lateral / Login)</span>
-                  <span className="px-2 py-0.5 rounded bg-[#0067FC]/20 text-[#00A6FC] font-bold">Tema Padrão</span>
-                </div>
-
-                <div className="py-6 flex flex-col items-center justify-center text-center">
-                  {logoPreviewUrl ? (
-                    <div className="flex flex-col items-center">
-                      <img
-                        src={logoPreviewUrl}
-                        alt="Logotipo Personalizado"
-                        className="max-h-20 object-contain drop-shadow-[0_0_15px_rgba(0,166,252,0.4)]"
-                      />
-                      <span
-                        className="text-xs font-bold tracking-widest uppercase mt-2.5"
-                        style={{ color: customTaglineColor }}
-                      >
-                        {customTagline || 'Enterprise System . 100% Monitorado'}
-                      </span>
-                    </div>
-                  ) : (
-                    <GIHSLogo variant="system" mode="transparent" height={56} showTagline={true} />
-                  )}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-[#0A2854] flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Tagline vinculada à mesma cor da marca:</span>
-                  <span className="font-mono font-bold" style={{ color: customTaglineColor }}>
-                    {customTaglineColor}
-                  </span>
-                </div>
-              </div>
-
-              {/* Preview 2: Fundo Claro (Light Theme / Documentos) */}
-              <div className="rounded-2xl bg-slate-50 p-6 border border-slate-200 flex flex-col justify-between relative">
-                <div className="flex items-center justify-between text-xs text-slate-600 font-mono mb-4 pb-2 border-b border-slate-200">
-                  <span>Visualização High-Contrast (Relatórios / Exportações)</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">Contraste Claro</span>
-                </div>
-
-                <div className="py-6 flex flex-col items-center justify-center text-center">
-                  {logoPreviewUrl ? (
-                    <div className="flex flex-col items-center">
-                      <img
-                        src={logoPreviewUrl}
-                        alt="Logotipo Personalizado"
-                        className="max-h-20 object-contain"
-                      />
-                      <span
-                        className="text-xs font-bold tracking-widest uppercase mt-2.5"
-                        style={{ color: customTaglineColor }}
-                      >
-                        {customTagline || 'Enterprise System . 100% Monitorado'}
-                      </span>
-                    </div>
-                  ) : (
-                    <GIHSLogo variant="system" mode="light" height={56} showTagline={true} />
-                  )}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Status no Banco de Dados:</span>
-                  <span className="font-bold text-slate-700">
-                    {logoPreviewUrl ? 'Imagem Personalizada Carregada' : 'Logotipo Vetorial Oficial Ativo'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Custom Logo Upload & Configuration Controls */}
-            <div className="pt-4 border-t border-slate-100 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Upload File Box */}
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Upload className="w-4 h-4 text-[#0067FC]" />
-                    <label className="text-xs font-bold text-slate-800">
-                      Substituir Logotipo por Imagem (Upload)
-                    </label>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Envie o arquivo do seu logotipo (ex: <code className="font-mono text-[#0067FC]">GIHS__systems_transparent.png</code> ou SVG). A imagem será codificada e gravada diretamente no PostgreSQL.
-                  </p>
-
-                  <input
-                    type="file"
-                    ref={logoFileInputRef}
-                    accept="image/png, image/jpeg, image/svg+xml, image/webp"
-                    onChange={handleLogoFileChange}
-                    className="hidden"
-                  />
-
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => logoFileInputRef.current?.click()}
-                      className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:border-[#0067FC] text-slate-700 hover:text-[#0067FC] font-bold text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Selecionar Arquivo de Imagem...</span>
-                    </button>
-
-                    {logoPreviewUrl && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLogoPreviewUrl(null);
-                          setLogoFileMsg({
-                            type: 'success',
-                            text: 'Pré-visualização de imagem removida. O logotipo voltará ao vetor padrão oficial.'
-                          });
-                        }}
-                        className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold text-xs transition-colors cursor-pointer"
-                      >
-                        Limpar Imagem Carregada
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Tagline & Color Box */}
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                  <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-[#0067FC]" />
-                    <span>Texto da Tagline Abaixo do Logotipo</span>
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Texto oficial que permanece logo abaixo da marca, mantendo a mesma cor de destaque:
-                  </p>
-
-                  <input
-                    type="text"
-                    value={customTagline}
-                    onChange={(e) => setCustomTagline(e.target.value)}
-                    placeholder="Enterprise System . 100% Monitorado"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0067FC] focus:border-transparent bg-white shadow-sm"
-                  />
-
-                  <div className="pt-2">
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
-                      Cor da Tagline (mesma cor da marca):
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {[
-                        { label: 'Ciano Oficial', color: '#00A6FC' },
-                        { label: 'Neon Cyber', color: '#00E5FF' },
-                        { label: 'Azul Elétrico', color: '#0067FC' },
-                        { label: 'Sky Blue', color: '#38BDF8' },
-                        { label: 'Branco', color: '#FFFFFF' }
-                      ].map((item) => (
-                        <button
-                          key={item.color}
-                          type="button"
-                          onClick={() => setCustomTaglineColor(item.color)}
-                          className={`w-7 h-7 rounded-lg border-2 transition-all cursor-pointer flex items-center justify-center ${
-                            customTaglineColor === item.color
-                              ? 'border-[#0067FC] scale-110 shadow-sm ring-2 ring-[#0067FC]/30'
-                              : 'border-slate-300 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: item.color }}
-                          title={`${item.label} (${item.color})`}
-                        />
-                      ))}
-                      <input
-                        type="color"
-                        value={customTaglineColor}
-                        onChange={(e) => setCustomTaglineColor(e.target.value)}
-                        className="w-7 h-7 rounded-lg border border-slate-300 cursor-pointer p-0"
-                        title="Cor personalizada"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleResetLogoToDefault}
-                    disabled={isSavingLogo || isLogoLoading}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isSavingLogo ? 'animate-spin' : ''}`} />
-                    <span>Restaurar Logotipo Oficial GIHS SYSTEMS</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveLogoToPostgres}
-                    disabled={isSavingLogo || isLogoLoading}
-                    className="px-6 py-2.5 rounded-xl bg-[#0067FC] hover:bg-[#0055d4] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-[#0067FC]/25 transition-all cursor-pointer"
-                  >
-                    {isSavingLogo ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    <span>Salvar no Banco de Dados PostgreSQL</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* PostgreSQL DBA Telemetry Card */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between bg-slate-900 text-slate-300 px-4 py-2.5 rounded-t-2xl text-xs font-mono">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-[#00A6FC]" />
-                  <span>gihs_core.system_settings ➔ chave: system_logo</span>
-                </div>
-                <span className="text-[11px] text-emerald-400 font-bold">PostgreSQL 16+ LIVE</span>
-              </div>
-              <pre className="bg-[#01122D] text-cyan-300 p-4 rounded-b-2xl text-xs font-mono overflow-x-auto max-h-48 border-x border-b border-slate-800">
-                <code>
-                  {JSON.stringify(
-                    {
-                      key: 'system_logo',
-                      database: 'PostgreSQL 16+ Oficial (gihs_core)',
-                      value: {
-                        title: 'GIHS SYSTEMS',
-                        tagline: customTagline,
-                        tagline_color: customTaglineColor,
-                        is_custom: Boolean(logoPreviewUrl),
-                        has_custom_image: Boolean(logoPreviewUrl),
-                        source: 'POSTGRESQL_DB',
-                        updated_at: logoData?.updated_at || new Date().toISOString()
-                      }
-                    },
-                    null,
-                    2
-                  )}
-                </code>
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-  );
+  )
 };
