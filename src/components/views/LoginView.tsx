@@ -3,14 +3,14 @@ import { Shield, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff,
 import { Collaborator } from '../../types';
 import { dbService } from '../../services/dbService';
 import { GIHSLogo } from '../GIHSLogo';
-
+import { useSystemLogo } from '../../hooks/useSystemLogo';
 
 interface LoginViewProps {
   onLogin: (user: Collaborator | null) => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
-
+  const { updateLogoInPostgres } = useSystemLogo();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Inicialização com campos completamente vazios (sem preenchimento prévio de e-mail ou senha)
@@ -71,6 +71,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             const reader = new FileReader();
             reader.onload = async (evt) => {
               const dataUrl = evt.target?.result as string;
+              await updateLogoInPostgres({
+                title: 'GIHS SYSTEMS',
+                tagline: 'Enterprise System . 100% Monitorado',
+                tagline_color: '#00A6FC',
+                logo_url: dataUrl,
+                is_custom: true
+              });
             };
             reader.readAsDataURL(file);
           }}
