@@ -163,20 +163,20 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     restrictionReason: 'Tela pública de autenticação para todos os colaboradores.',
     recommendedRoleToTest: 'SUPER_ADMIN'
   },
+  home: {
+    screen: 'home',
+    screenTitle: 'Home • Hub de Acesso Geral',
+    category: 'INÍCIO',
+    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
+    restrictionReason: 'Página inicial com todos os módulos do sistema.',
+    recommendedRoleToTest: 'SUPER_ADMIN'
+  },
   dashboard: {
     screen: 'dashboard',
     screenTitle: 'Dashboard Corporativo',
     category: 'VISÃO GERAL',
     allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR', 'COLABORADOR'],
     restrictionReason: 'Visão executiva contextualizada para o nível do usuário.',
-    recommendedRoleToTest: 'SUPER_ADMIN'
-  },
-  visao_geral: {
-    screen: 'visao_geral',
-    screenTitle: 'Central de Gestão (22 Telas)',
-    category: 'VISÃO GERAL',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
-    restrictionReason: 'A Central Executiva de Gestão e Visão Arquitetural das 22 Telas é restrita a Líderes, Gestores e Diretoria.',
     recommendedRoleToTest: 'SUPER_ADMIN'
   },
   organograma: {
@@ -321,14 +321,6 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     category: 'GOVERNANÇA',
     allowedRoles: ['SUPER_ADMIN'],
     restrictionReason: 'Parâmetros de infraestrutura, portas de rede, chaves de API e variáveis de ambiente são de acesso EXCLUSIVO do SUPER ADMINISTRADOR.',
-    recommendedRoleToTest: 'SUPER_ADMIN'
-  },
-  design_system: {
-    screen: 'design_system',
-    screenTitle: 'Fase 2 • UX/UI Design System & Wireframes (Área Privada: Gestão, Adm & RH)',
-    category: 'FASE 2 • PRIVADA',
-    allowedRoles: ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'],
-    restrictionReason: 'Área Privada Corporativa (Fase 2): Acesso confidencial e restrito exclusivamente à Gestão, Administração e Recursos Humanos (RH) do GIHS System. O mapa de navegação interativo das 22 telas, wireframes de alta fidelidade e especificações de produto são confidenciais.',
     recommendedRoleToTest: 'SUPER_ADMIN'
   }
 };

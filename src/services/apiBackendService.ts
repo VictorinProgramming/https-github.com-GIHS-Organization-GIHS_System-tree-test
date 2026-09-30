@@ -460,6 +460,12 @@ export class ApiBackendService {
     });
   }
 
+  async deleteMobilityVehicle(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/mobility/vehicles/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
   async getMobilityDevices() {
     return this.request<{ success: boolean; count: number; data: any[] }>('/mobility/devices');
   }
@@ -475,6 +481,12 @@ export class ApiBackendService {
     return this.request<{ success: boolean; data: any }>(`/mobility/devices/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
+    });
+  }
+
+  async deleteMobilityDevice(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/mobility/devices/${id}`, {
+      method: 'DELETE'
     });
   }
 

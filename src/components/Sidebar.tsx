@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  Home,
   Users,
   FileSpreadsheet,
   Calendar,
@@ -17,8 +18,10 @@ import {
   Lock,
   PhoneCall,
   Navigation,
-  X
+  X,
+  Accessibility
 } from 'lucide-react';
+import { useAccessibility } from '../contexts/AccessibilityContext';
 import { ViewScreen, Collaborator } from '../types';
 import { CURRENT_USER } from '../data/mockData';
 import { checkScreenAccess } from '../data/authCredentials';
@@ -62,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenOnMobile = false,
   onCloseMobile
 }) => {
+  const { setIsModalOpen } = useAccessibility();
   const handleSelect = (screen: ViewScreen) => {
     onSelectScreen(screen);
     onCloseMobile?.();
@@ -71,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'VISÃO GERAL',
       items: [
+        { id: 'home', label: 'Início (Home)', icon: Home, highlight: true },
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'organograma', label: 'Organograma', icon: Network, badge: 'Admin' },
         { id: 'colaboradores', label: 'Colaboradores', icon: Users, badge: 'Admin' }
@@ -136,10 +141,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header com Logomarca Oficial GIHS */}
         <div className="p-4 border-b border-[#0A2854] flex items-center justify-between bg-[#000B1D]/60">
           <div
-            onClick={() => handleSelect('dashboard')}
+            onClick={() => handleSelect('home')}
             className="flex items-center gap-2 cursor-pointer group w-full"
             id="sidebar-brand-logo"
-            title="GIHS System — Enterprise Intelligence"
+            title="GIHS System — Ir para Home (Início)"
           >
             <div className="w-full flex items-center justify-center py-2 px-1">
               <GIHSLogo variant="system" mode="transparent" height={44} showTagline={true} />
@@ -222,6 +227,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))}
         </nav>
+
+        {/* Universal Accessibility Button */}
+        <div className="px-3 py-2 border-t border-[#0A2854]/60 bg-[#000B1D]/40">
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              onCloseMobile?.();
+            }}
+            id="btn-sidebar-accessibility"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white border border-[#0A2854] hover:border-[#00A6FC] transition-all cursor-pointer group"
+            title="Abrir Central de Acessibilidade Universal (Alt + A)"
+            aria-label="Abrir Central de Acessibilidade Universal"
+          >
+            <div className="flex items-center gap-2.5">
+              <Accessibility className="w-4 h-4 text-[#00A6FC] group-hover:text-white transition-colors" />
+              <span className="font-bold">Acessibilidade</span>
+            </div>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#01122D] text-slate-400 group-hover:text-white border border-[#0A2854] transition-colors">
+              Alt+A
+            </span>
+          </button>
+        </div>
 
         {/* Logged User Bar */}
         <div

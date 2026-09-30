@@ -4,14 +4,12 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Crown,
-  Shield,
-  UserCog,
-  Users,
   ChevronDown,
   Menu,
-  Settings
+  Settings,
+  Accessibility
 } from 'lucide-react';
+import { useAccessibility } from '../contexts/AccessibilityContext';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
 import { GIHSIcon } from './GIHSIcon';
@@ -29,8 +27,8 @@ interface NavbarProps {
 
 const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; category: string }> = {
   login: { title: 'Acesso Corporativo', subtitle: 'GIHS System', category: 'Segurança' },
+  home: { title: 'Início • Hub de Acesso Geral', subtitle: 'Todos os módulos e ferramentas de trabalho', category: 'Início' },
   dashboard: { title: 'Dashboard Executivo', subtitle: 'Panorama em tempo real • 100% Monitorado', category: 'Visão Geral' },
-  visao_geral: { title: 'Central de Gestão', subtitle: 'Tudo conectado. Todos os processos monitorados.', category: 'Visão Geral' },
   organograma: { title: 'Organograma Corporativo', subtitle: 'Conexão estrutural de todos os setores', category: 'Visão Geral' },
   colaboradores: { title: 'Dossiê de Colaboradores', subtitle: 'Acesso Restrito: Gestão, Administração e RH', category: 'Gestão & RH' },
   meu_kanban: { title: 'Meu Kanban', subtitle: 'Fluxo individual de trabalho', category: 'Operação' },
@@ -48,8 +46,7 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   mobilidade: { title: 'Mobilidade Corporativa', subtitle: 'Celulares de plantão, custódia e rotas GPS', category: 'Governança' },
   relatorios: { title: 'Central de Relatórios', subtitle: 'Indicadores de produtividade, ponto e SLAs', category: 'Governança' },
   auditoria: { title: 'Auditoria do Sistema', subtitle: 'Trilhas forenses, logs e conformidade LGPD', category: 'Governança' },
-  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos e banco de dados', category: 'Governança' },
-  design_system: { title: 'UX/UI & Design System', subtitle: 'Identidade Oficial GIHS System & Tokens Visuais', category: 'Governança' }
+  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos e banco de dados', category: 'Governança' }
 };
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -60,6 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [time, setTime] = useState('09:02:18');
+  const { setIsModalOpen } = useAccessibility();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,9 +93,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Small Screen Logo */}
         <div
-          onClick={() => onSelectScreen('dashboard')}
+          onClick={() => onSelectScreen('home')}
           className="lg:hidden flex items-center cursor-pointer shrink-0 p-1 rounded-lg"
-          title="Ir para Dashboard GIHS System"
+          title="Ir para Início (Home) GIHS System"
         >
           <GIHSIcon size={30} variant={currentScreen === 'ai_hub' ? 'agents' : 'system'} />
         </div>
@@ -155,18 +153,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </button>
 
-        {/* User Role Badge */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#0A2854] bg-[#041838] text-xs font-bold text-slate-200">
-          {currentUser.userRole === 'SUPER_ADMIN' && <Crown className="w-3.5 h-3.5 text-purple-400" />}
-          {currentUser.userRole === 'ADMINISTRATIVO' && <UserCog className="w-3.5 h-3.5 text-sky-400" />}
-          {currentUser.userRole === 'GESTOR' && <Shield className="w-3.5 h-3.5 text-emerald-400" />}
-          {(!currentUser.userRole || currentUser.userRole === 'COLABORADOR') && <Users className="w-3.5 h-3.5 text-slate-400" />}
-          <span className="font-mono text-[11px] text-white">
-            {currentUser.userRole === 'SUPER_ADMIN'
-              ? 'SUPER ADMIN'
-              : currentUser.userRole || 'COLABORADOR'}
-          </span>
-        </div>
+        {/* Universal Accessibility Button */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          id="btn-navbar-accessibility"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white text-xs font-bold transition-all active:scale-95 cursor-pointer group shrink-0"
+          title="Central de Acessibilidade Universal (Alt + A) — Leitor de Tela, Libras e Modos Motores"
+          aria-label="Abrir Central de Acessibilidade"
+        >
+          <Accessibility className="w-4 h-4 text-[#00A6FC] group-hover:text-white transition-colors" />
+          <span className="hidden lg:inline">Acessibilidade</span>
+        </button>
 
         {/* Notification Alert */}
         <div className="relative">

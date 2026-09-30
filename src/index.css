@@ -57,3 +57,109 @@
   border-color: rgba(0, 166, 252, 0.4);
   box-shadow: 0 0 15px rgba(0, 103, 252, 0.2);
 }
+
+/* ====================================================================
+   GIHS Acessibilidade Universal (WCAG 2.2 AAA & LBI - Lei Brasileira de Inclusão)
+   Pessoas Cegas, Surdas, Cadeirantes e Baixa Visão
+   ==================================================================== */
+
+/* 1. MODO ALTO CONTRASTE (WCAG AAA) */
+body.a11y-high-contrast {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+body.a11y-high-contrast div,
+body.a11y-high-contrast section,
+body.a11y-high-contrast aside,
+body.a11y-high-contrast header,
+body.a11y-high-contrast nav,
+body.a11y-high-contrast main {
+  background-color: #000000 !important;
+  border-color: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
+
+body.a11y-high-contrast .bg-[#01122D],
+body.a11y-high-contrast .bg-[#000B1D],
+body.a11y-high-contrast .bg-[#041838],
+body.a11y-high-contrast .bg-[#011638] {
+  background-color: #000000 !important;
+  border: 1.5px solid #FFFFFF !important;
+}
+
+body.a11y-high-contrast button {
+  border: 2px solid #FFFF00 !important;
+  color: #FFFFFF !important;
+}
+
+body.a11y-high-contrast button:hover,
+body.a11y-high-contrast button:focus {
+  background-color: #FFFF00 !important;
+  color: #000000 !important;
+}
+
+body.a11y-high-contrast input,
+body.a11y-high-contrast select,
+body.a11y-high-contrast textarea {
+  background-color: #000000 !important;
+  border: 2px solid #FFFFFF !important;
+  color: #FFFFFF !important;
+}
+
+body.a11y-high-contrast .text-slate-400,
+body.a11y-high-contrast .text-slate-500,
+body.a11y-high-contrast .text-slate-300 {
+  color: #E2E8F0 !important;
+}
+
+body.a11y-high-contrast .text-[#0067FC],
+body.a11y-high-contrast .text-[#00A6FC] {
+  color: #FFFF00 !important;
+}
+
+/* 2. ESCALAS DE FONTE (WCAG 1.4.4) */
+html.a11y-font-large {
+  font-size: 115% !important;
+}
+
+html.a11y-font-xlarge {
+  font-size: 130% !important;
+}
+
+/* 3. ALVOS DE TOQUE GRANDES (Cadeirantes & Controle Motor / Tremores) */
+body.a11y-large-targets button,
+body.a11y-large-targets a,
+body.a11y-large-targets input,
+body.a11y-large-targets select {
+  min-height: 48px !important;
+  min-width: 48px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* 4. REDUÇÃO DE MOVIMENTO */
+body.a11y-reduced-motion *,
+body.a11y-reduced-motion *::before,
+body.a11y-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* 5. FOCO ACESSÍVEL ULTRA VISÍVEL */
+:focus-visible {
+  outline: 3px solid #F59E0B !important;
+  outline-offset: 2px !important;
+}
+
+/* 6. ALERTA VISUAL FLASH PARA SURDOS */
+@keyframes a11y-visual-sound-flash {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.a11y-sound-alert-indicator {
+  animation: a11y-visual-sound-flash 1.2s infinite;
+}

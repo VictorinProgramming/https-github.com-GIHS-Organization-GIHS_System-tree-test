@@ -962,6 +962,24 @@ export async function createMobilityVehicle(req: Request, res: Response) {
   }
 }
 
+export async function deleteMobilityVehicle(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const ok = await mobilityRepository.deleteVehicle(id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Veículo não encontrado' });
+    await recordSecurityAudit({
+      action: 'REMOCAO_VEICULO_FROTA',
+      category: 'MOBILITY',
+      user_name: 'Diretoria / Super Admin',
+      ip_address: req.ip || '127.0.0.1',
+      details: { vehicleId: id }
+    });
+    res.json({ success: true, message: 'Veículo removido com sucesso' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 export async function getMobilityDevices(req: Request, res: Response) {
   try {
     const devices = await mobilityRepository.getDevices();
@@ -1005,6 +1023,24 @@ export async function updateMobilityDevice(req: Request, res: Response) {
     const updated = await mobilityRepository.updateDevice(id, req.body);
     if (!updated) return res.status(404).json({ success: false, error: 'Aparelho não encontrado' });
     res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function deleteMobilityDevice(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const ok = await mobilityRepository.deleteDevice(id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Aparelho não encontrado' });
+    await recordSecurityAudit({
+      action: 'REMOCAO_CELULAR_CORPORATIVO',
+      category: 'MOBILITY',
+      user_name: 'Diretoria / Super Admin',
+      ip_address: req.ip || '127.0.0.1',
+      details: { deviceId: id }
+    });
+    res.json({ success: true, message: 'Celular corporativo removido com sucesso' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

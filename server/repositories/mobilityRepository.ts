@@ -248,6 +248,12 @@ export const mobilityRepository = {
     return res.rows[0] || null;
   },
 
+  async deleteDevice(id: string): Promise<boolean> {
+    await query('DELETE FROM device_assignments WHERE equipment_id = $1', [id]);
+    const res = await query('DELETE FROM equipment WHERE id = $1', [id]);
+    return (res.rowCount ?? 0) > 0;
+  },
+
   // =========================================================================
   // 2. CUSTÓDIA E RESPONSABILIDADE (DEVICE_ASSIGNMENTS)
   // =========================================================================
@@ -399,6 +405,11 @@ export const mobilityRepository = {
       veh.status || 'DISPONIVEL'
     ]);
     return res.rows[0];
+  },
+
+  async deleteVehicle(id: string): Promise<boolean> {
+    const res = await query('DELETE FROM corporate_vehicles WHERE id = $1', [id]);
+    return (res.rowCount ?? 0) > 0;
   },
 
   // =========================================================================

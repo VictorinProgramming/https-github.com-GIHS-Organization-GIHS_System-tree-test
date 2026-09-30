@@ -60,8 +60,10 @@ import {
   getMobilityDeviceById,
   createMobilityDevice,
   updateMobilityDevice,
+  deleteMobilityDevice,
   getMobilityVehicles,
   createMobilityVehicle,
+  deleteMobilityVehicle,
   getMobilityAssignments,
   createMobilityAssignment,
   returnMobilityAssignment,
@@ -202,10 +204,12 @@ app.post('/api/on-call/audit-pdf', auditPdfGeneration);
 // Mobility (Mobilidade Corporativa) Routes
 app.get('/api/mobility/vehicles', getMobilityVehicles);
 app.post('/api/mobility/vehicles', createMobilityVehicle);
+app.delete('/api/mobility/vehicles/:id', deleteMobilityVehicle);
 app.get('/api/mobility/devices', getMobilityDevices);
 app.get('/api/mobility/devices/:id', getMobilityDeviceById);
 app.post('/api/mobility/devices', createMobilityDevice);
 app.put('/api/mobility/devices/:id', updateMobilityDevice);
+app.delete('/api/mobility/devices/:id', deleteMobilityDevice);
 app.get('/api/mobility/assignments', getMobilityAssignments);
 app.post('/api/mobility/assignments', createMobilityAssignment);
 app.post('/api/mobility/assignments/:id/return', returnMobilityAssignment);

@@ -241,6 +241,7 @@ export interface MarketingVideoItem {
 
 export type ViewScreen = 
   | 'login'
+  | 'home'
   | 'dashboard'
   | 'colaboradores'
   | 'planilhas'
@@ -259,8 +260,6 @@ export type ViewScreen =
   | 'relatorios'
   | 'auditoria'
   | 'organograma'
-  | 'visao_geral'
-  | 'design_system'
   | 'configuracoes';
 
 export interface OnCallShift {

@@ -33,8 +33,7 @@ export const PresentationGuideModal: React.FC<GuideModalProps> = ({
       subtitle: 'Como a diretoria e liderança monitoram a empresa em tempo real',
       screens: [
         { label: 'Tela 02: Dashboard Executivo', id: 'dashboard' as ViewScreen },
-        { label: 'Tela 14: Relatórios & SLAs com IA', id: 'relatorios' as ViewScreen },
-        { label: 'Tela 22: Visão Geral da Plataforma', id: 'visao_geral' as ViewScreen }
+        { label: 'Tela 14: Relatórios & SLAs com IA', id: 'relatorios' as ViewScreen }
       ],
       icon: Compass,
       color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30'

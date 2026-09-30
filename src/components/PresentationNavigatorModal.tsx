@@ -20,11 +20,13 @@ import {
   Building2,
   LifeBuoy,
   HardDrive,
-  Compass,
   LogIn,
   FileText,
   Network,
-  Shield
+  Shield,
+  Home,
+  Navigation,
+  Settings
 } from 'lucide-react';
 import { ViewScreen } from '../types';
 
@@ -55,25 +57,26 @@ export const PresentationNavigatorModal: React.FC<QuickJumpModalProps> = ({
   if (!isOpen) return null;
 
   const screens: ScreenItem[] = [
-    { id: 'login', number: 1, name: 'Tela 01 • Login Corporativo', category: 'Acesso', description: 'Ambiente seguro com login rápido para demonstração executiva', icon: LogIn },
-    { id: 'dashboard', number: 2, name: 'Tela 02 • Dashboard Executivo', category: 'Gestão', description: 'Visão panorâmica: colaboradores, produtividade por setor, tarefas e alertas', icon: LayoutDashboard },
-    { id: 'planilhas', number: 3, name: 'Tela 03 • Base de Atividades (Planilha)', category: 'Processos', description: 'Tabela inteligente com ordenação, busca por setor e exportação Excel/CSV', icon: FileSpreadsheet },
-    { id: 'agenda', number: 4, name: 'Tela 04 • Agenda & Reuniões', category: 'Pessoas', description: 'Visualização mês/semana/dia e indicador de integração planejada com Google Agenda', icon: Calendar },
-    { id: 'meu_kanban', number: 5, name: 'Tela 05 • Meu Kanban (Individual)', category: 'Operação', description: 'Fluxo pessoal de Victor (Backlog, A Fazer, Em Andamento, Revisão, Concluído)', icon: Kanban },
-    { id: 'kanban_equipe', number: 6, name: 'Tela 07 • Kanban da Equipe', category: 'Operação', description: 'Quadro interativo por setor (Suporte N2) com filtros semanais e responsáveis', icon: Kanban },
-    { id: 'visao_semanal', number: 7, name: 'Tela 08 • Planejamento Semanal', category: 'Operação', description: 'Distribuição visual SEG a SEX com horas estimadas e tarefas críticas', icon: Calendar },
-    { id: 'registro_ponto', number: 8, name: 'Tela 08 • Registro de Ponto Eletrônico', category: 'Pessoas', description: 'Registro biométrico simulado com detecção facial na câmera e geolocalização', icon: Clock },
-    { id: 'espelho_ponto', number: 9, name: 'Tela 09 • Espelho de Ponto Individual', category: 'Pessoas', description: 'Tabela consolidada de jornadas, saldo de horas e status mensal', icon: FileSpreadsheet },
-    { id: 'gestao_ponto', number: 10, name: 'Tela 10 • Gestão de Ponto Corporativa', category: 'Pessoas', description: 'Painel da gerência com status em tempo real de toda a equipe e aprovações', icon: Users },
-    { id: 'clientes', number: 11, name: 'Tela 11 • Gestão de Clientes & Contratos', category: 'Comercial', description: 'Carteira de clientes atendidos, planos contratados, SLAs e faturamento', icon: Building2 },
-    { id: 'chamados', number: 12, name: 'Tela 12 • Help Desk & Chamados', category: 'Operação', description: 'Fila técnica de incidentes N1/N2/N3, priorização e controle de SLA', icon: LifeBuoy },
-    { id: 'equipamentos', number: 13, name: 'Tela 13 • Inventário de Equipamentos', category: 'Infraestrutura', description: 'Gestão patrimonial de notebooks, servidores e termos de cautela', icon: HardDrive },
-    { id: 'relatorios', number: 14, name: 'Tela 14 • Relatórios Executivos', category: 'Governança', description: 'Indicadores de produtividade de setores, SLAs e análise automatizada', icon: BarChart3 },
-    { id: 'auditoria', number: 15, name: 'Tela 15 • Trilha de Auditoria & Segurança', category: 'Governança', description: 'Syslog corporativo imutável para compliance, acessos e LGPD', icon: ShieldCheck },
-    { id: 'colaboradores', number: 16, name: 'Fase 4 • Colaboradores (Área Privada: Gestão, Adm & RH)', category: 'Gestão & RH', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Quadro funcional, dossiê contratual, salários e governança de acessos', icon: Shield },
-    { id: 'visao_geral', number: 17, name: 'Tela 16 • Visão Geral da Plataforma', category: 'Executivo', description: 'Diagrama visual do ecossistema integrado: tudo conectado em uma única plataforma', icon: Compass },
-    { id: 'design_system', number: 18, name: 'Fase 2 • UX/UI Design System (Área Privada: Gestão, Adm & RH)', category: 'Design UX/UI • Privada', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Mapa de navegação interativo das telas, wireframes responsivos e especificações de produto', icon: Sparkles },
-    { id: 'organograma', number: 19, name: 'Fase 3 • Organograma Institucional (Área Privada: Gestão, Adm & RH)', category: 'Estrutura • Privada', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Árvore hierárquica interativa, linhas de comando e simulação de cargos', icon: Network }
+    { id: 'login', number: 1, name: 'Tela 01 • Login Corporativo', category: 'Acesso', description: 'Ambiente seguro com login e autenticação com PostgreSQL', icon: LogIn },
+    { id: 'home', number: 2, name: 'Tela 02 • Home (Hub de Acesso Geral)', category: 'Início', description: 'Painel inicial pós-login com todos os ícones e atalhos para os módulos', icon: Home },
+    { id: 'dashboard', number: 3, name: 'Tela 03 • Dashboard Executivo', category: 'Gestão', description: 'Visão panorâmica: colaboradores, produtividade por setor, tarefas e alertas', icon: LayoutDashboard },
+    { id: 'planilhas', number: 4, name: 'Tela 04 • Base de Atividades (Planilha)', category: 'Processos', description: 'Tabela inteligente com ordenação, busca por setor e exportação Excel/CSV', icon: FileSpreadsheet },
+    { id: 'agenda', number: 5, name: 'Tela 05 • Agenda & Reuniões', category: 'Pessoas', description: 'Visualização mês/semana/dia e reuniões corporativas', icon: Calendar },
+    { id: 'meu_kanban', number: 6, name: 'Tela 06 • Meu Kanban (Individual)', category: 'Operação', description: 'Fluxo pessoal (Backlog, A Fazer, Em Andamento, Revisão, Concluído)', icon: Kanban },
+    { id: 'kanban_equipe', number: 7, name: 'Tela 07 • Kanban da Equipe', category: 'Operação', description: 'Quadro interativo por setor com filtros semanais e responsáveis', icon: Kanban },
+    { id: 'visao_semanal', number: 8, name: 'Tela 08 • Planejamento Semanal', category: 'Operação', description: 'Distribuição visual SEG a SEX com horas estimadas e tarefas críticas', icon: Calendar },
+    { id: 'registro_ponto', number: 9, name: 'Tela 09 • Registro de Ponto Eletrônico', category: 'Pessoas', description: 'Registro biométrico com detecção facial e geolocalização', icon: Clock },
+    { id: 'espelho_ponto', number: 10, name: 'Tela 10 • Espelho de Ponto Individual', category: 'Pessoas', description: 'Tabela consolidada de jornadas, saldo de horas e status mensal', icon: FileSpreadsheet },
+    { id: 'gestao_ponto', number: 11, name: 'Tela 11 • Gestão de Ponto Corporativa', category: 'Pessoas', description: 'Painel da gerência com status em tempo real de toda a equipe e aprovações', icon: Users },
+    { id: 'clientes', number: 12, name: 'Tela 12 • Gestão de Clientes & Contratos', category: 'Comercial', description: 'Carteira de clientes atendidos, planos contratados, SLAs e faturamento', icon: Building2 },
+    { id: 'chamados', number: 13, name: 'Tela 13 • Help Desk & Chamados', category: 'Operação', description: 'Fila técnica de incidentes N1/N2/N3, priorização e controle de SLA', icon: LifeBuoy },
+    { id: 'equipamentos', number: 14, name: 'Tela 14 • Inventário de Equipamentos', category: 'Infraestrutura', description: 'Gestão patrimonial de notebooks, servidores e termos de cautela', icon: HardDrive },
+    { id: 'mobilidade', number: 15, name: 'Tela 15 • Mobilidade Corporativa & Frotas', category: 'Operação', description: 'Rastreamento de veículos, rotas com GPS físico real e gestão de deslocamentos', icon: Navigation },
+    { id: 'relatorios', number: 16, name: 'Tela 16 • Relatórios Executivos', category: 'Governança', description: 'Indicadores de produtividade de setores, SLAs e análise automatizada', icon: BarChart3 },
+    { id: 'auditoria', number: 17, name: 'Tela 17 • Trilha de Auditoria & Segurança', category: 'Governança', description: 'Syslog corporativo imutável para compliance, acessos e LGPD', icon: ShieldCheck },
+    { id: 'colaboradores', number: 18, name: 'Tela 18 • Colaboradores (Área Privada: Gestão, Adm & RH)', category: 'Gestão & RH', description: 'Ambiente confidencial privado para Gestão, Administração e RH. Quadro funcional, dossiê contratual e salários', icon: Shield },
+    { id: 'organograma', number: 19, name: 'Tela 19 • Organograma Institucional (Área Privada)', category: 'Estrutura • Privada', description: 'Árvore hierárquica interativa, linhas de comando e simulação de cargos', icon: Network },
+    { id: 'configuracoes', number: 20, name: 'Tela 20 • Configurações do Sistema', category: 'Governança', description: 'Parâmetros de sistema, conexões e credenciais de segurança', icon: Settings }
   ];
 
   const filteredScreens = screens.filter(s => 

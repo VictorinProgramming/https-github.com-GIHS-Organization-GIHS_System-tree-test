@@ -8,6 +8,7 @@ import { PresentationGuideModal } from './components/PresentationGuideModal';
 
 // 22 Screen Views
 import { LoginView } from './components/views/LoginView';
+import { HomeView } from './components/views/HomeView';
 import { DashboardView } from './components/views/DashboardView';
 import { SmartSpreadsheetView } from './components/views/SmartSpreadsheetView';
 import { AgendaView } from './components/views/AgendaView';
@@ -23,8 +24,6 @@ import { TicketsView } from './components/views/TicketsView';
 import { EquipmentView } from './components/views/EquipmentView';
 import { CollaboratorsView } from './components/views/CollaboratorsView';
 import { AuditLogView } from './components/views/AuditLogView';
-import { VisionOverviewView } from './components/views/VisionOverviewView';
-import { DesignSystemNavMapView } from './components/views/DesignSystemNavMapView';
 import { OrganogramaView } from './components/views/OrganogramaView';
 import { SettingsView } from './components/views/SettingsView';
 import { OnCallView } from './components/views/OnCallView';
@@ -32,8 +31,12 @@ import { MobilityView } from './components/views/MobilityView';
 import { RoleSimulatorModal } from './components/RoleSimulatorModal';
 import { TicketNotificationPopup } from './components/common/TicketNotificationPopup';
 import { checkScreenAccess } from './data/authCredentials';
+import { CURRENT_USER } from './data/mockData';
 import { Presentation, BookOpen, ChevronRight, ChevronLeft, ShieldAlert, Lock, Crown, Key, Sparkles, Shield } from 'lucide-react';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AccessibilityProvider } from './contexts/AccessibilityContext';
+import { AccessibilityModal } from './components/accessibility/AccessibilityModal';
+import { VisualNotificationBanner } from './components/accessibility/VisualNotificationBanner';
 
 // Utilizador padrão vazio até que o Login na base de dados PostgreSQL seja efetuado
 const DEFAULT_USER: Collaborator = {
@@ -50,9 +53,33 @@ const DEFAULT_USER: Collaborator = {
   admissionDate: new Date().toISOString().split('T')[0]
 };
 
+const SCREEN_A11Y_SUMMARIES: Record<ViewScreen, { title: string; summary: string }> = {
+  login: { title: 'Tela de Autenticação', summary: 'Informe seu e-mail e senha para acessar o sistema corporativo GIHS.' },
+  home: { title: 'Início • Hub de Acesso Geral', summary: 'Painel inicial com todos os módulos, ferramentas e atalhos operacionais.' },
+  dashboard: { title: 'Dashboard Executivo', summary: 'Visão geral da operação de TI, métricas de chamados, disponibilidade de servidores e chamados ativos.' },
+  planilhas: { title: 'Planilhas Inteligentes', summary: 'Tabelas dinâmicas de chamados e equipamentos sincronizadas com PostgreSQL.' },
+  agenda: { title: 'Agenda Corporativa', summary: 'Calendário de reuniões, plantões e manutenções programadas.' },
+  meu_kanban: { title: 'Meu Kanban Pessoal', summary: 'Tarefas individuais organizadas em A Fazer, Em Andamento e Concluído.' },
+  kanban_equipe: { title: 'Kanban da Equipe', summary: 'Fluxo integrado de trabalho de toda a equipe técnica e suporte.' },
+  visao_semanal: { title: 'Planejamento Semanal', summary: 'Grade de alocação semanal de atividades técnicas.' },
+  sobreaviso: { title: 'Escala de Sobreaviso', summary: 'Técnico de plantão do dia, celulares corporativos e acionamentos.' },
+  registro_ponto: { title: 'Registro de Ponto Biométrico', summary: 'Batimento de ponto com reconhecimento facial e geolocalização.' },
+  espelho_ponto: { title: 'Espelho de Ponto', summary: 'Histórico de batidas, horas trabalhadas, banco de horas e folha espelho.' },
+  gestao_ponto: { title: 'Gestão de Ponto RH', summary: 'Painel administrativo de controle de jornada e aprovação de horas.' },
+  relatorios: { title: 'Relatórios Gerenciais', summary: 'Métricas de SLA, volumetria de suporte e tempo médio de atendimento.' },
+  clientes: { title: 'Gestão de Clientes', summary: 'Contratos, unidades atendidas e histórico de chamados por cliente.' },
+  chamados: { title: 'Central de Chamados Help Desk', summary: 'Abertura, triagem e atendimento de tickets N1, N2 e N3.' },
+  equipamentos: { title: 'Inventário de Ativos de TI', summary: 'Servidores, switches, notebooks e celulares corporativos.' },
+  colaboradores: { title: 'Quadro de Colaboradores', summary: 'Equipe de TI, cargos, setores e contatos profissionais.' },
+  auditoria: { title: 'Trilha de Auditoria e Logs', summary: 'Registros forenses de acessos e operações no PostgreSQL para conformidade LGPD.' },
+  organograma: { title: 'Organograma Corporativo', summary: 'Estrutura hierárquica e setores da organização.' },
+  configuracoes: { title: 'Configurações do Sistema', summary: 'Parâmetros de sistema, conexões e credenciais de segurança.' },
+  mobilidade: { title: 'Mobilidade Corporativa & Frotas', summary: 'Rastreamento de veículos, rotas com GPS físico real e gestão de deslocamentos.' }
+};
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ViewScreen>('login');
-  const [currentUser, setCurrentUser] = useState<Collaborator>(DEFAULT_USER);
+  const [currentUser, setCurrentUser] = useState<Collaborator>(CURRENT_USER);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNavModalOpen, setIsNavModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -85,6 +112,7 @@ export default function App() {
   // Screen ordering for linear pitch navigation
   const screenOrder: ViewScreen[] = [
     'login',
+    'home',
     'dashboard',
     'planilhas',
     'agenda',
@@ -102,8 +130,8 @@ export default function App() {
     'relatorios',
     'colaboradores',
     'auditoria',
-    'visao_geral',
-    'design_system'
+    'organograma',
+    'configuracoes'
   ];
 
   const currentScreenIndex = screenOrder.indexOf(currentScreen);
@@ -119,18 +147,17 @@ export default function App() {
             if (user) {
               setCurrentUser(user); // Os dados reais da base de dados são injetados aqui
             }
-            setCurrentScreen('dashboard');
+            setCurrentScreen('home');
           }} 
         />
       );
     }
 
-    // Dedicated executive private screens (Phase 2, Phase 3, Phase 4) render their own
+    // Dedicated executive private screens (Phase 3, Phase 4) render their own
     // specialized PrivateAccessLock with full governance context.
     const isDedicatedPrivateScreen =
       currentScreen === 'colaboradores' ||
-      currentScreen === 'organograma' ||
-      currentScreen === 'design_system';
+      currentScreen === 'organograma';
 
     if (!isDedicatedPrivateScreen) {
       // Centralized RBAC Security Enforcement across standard operational screens
@@ -225,8 +252,15 @@ export default function App() {
               if (user) {
                 setCurrentUser(user);
               }
-              setCurrentScreen('dashboard');
+              setCurrentScreen('home');
             }} 
+          />
+        );
+      case 'home':
+        return (
+          <HomeView
+            currentUser={currentUser}
+            onNavigate={(screen) => setCurrentScreen(screen)}
           />
         );
       case 'dashboard':
@@ -276,24 +310,9 @@ export default function App() {
         );
       case 'auditoria':
         return <AuditLogView />;
-      case 'visao_geral':
-        return (
-          <VisionOverviewView
-            onNavigate={setCurrentScreen}
-            onOpenGuide={() => setIsGuideModalOpen(true)}
-          />
-        );
       case 'organograma':
         return (
           <OrganogramaView
-            onNavigate={setCurrentScreen}
-            currentUser={currentUser}
-            onSwitchUser={setCurrentUser}
-          />
-        );
-      case 'design_system':
-        return (
-          <DesignSystemNavMapView
             onNavigate={setCurrentScreen}
             currentUser={currentUser}
             onSwitchUser={setCurrentUser}
@@ -311,91 +330,105 @@ export default function App() {
     }
   };
 
+  const currentA11yMeta = SCREEN_A11Y_SUMMARIES[currentScreen] || {
+    title: 'GIHS System',
+    summary: 'Plataforma Corporativa de TI e Operações.'
+  };
+
   return (
-    <div className="min-h-screen bg-[#01122D] text-slate-100 flex flex-col font-sans selection:bg-[#0067FC]/40 selection:text-white antialiased">
-      {currentScreen === 'login' ? (
-        renderActiveScreen()
-      ) : (
-        // Standard Corporate Master Layout for Screens 2 to 22
-        <div className="flex h-screen overflow-hidden relative">
-          {/* Main Sidebar (Desktop persistent + Mobile slide-over drawer) */}
-          <Sidebar
-            currentScreen={currentScreen}
-            onSelectScreen={setCurrentScreen}
-            onLogout={() => setCurrentScreen('login')}
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            onOpenNavModal={() => setIsNavModalOpen(true)}
-            onOpenGuideModal={() => setIsGuideModalOpen(true)}
-            onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
-            currentUser={currentUser}
-            isOpenOnMobile={isMobileMenuOpen}
-            onCloseMobile={() => setIsMobileMenuOpen(false)}
-          />
-
-          {/* Main Content Column */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            {/* Top Corporate Navbar */}
-            <Navbar
+    <AccessibilityProvider>
+      <div className="min-h-screen bg-[#01122D] text-slate-100 flex flex-col font-sans selection:bg-[#0067FC]/40 selection:text-white antialiased">
+        {currentScreen === 'login' || currentScreen === 'home' ? (
+          renderActiveScreen()
+        ) : (
+          // Standard Corporate Master Layout for Screens 2 to 22
+          <div className="flex h-screen overflow-hidden relative">
+            {/* Main Sidebar (Desktop persistent + Mobile slide-over drawer) */}
+            <Sidebar
               currentScreen={currentScreen}
               onSelectScreen={setCurrentScreen}
-              onOpenQuickJump={() => setIsNavModalOpen(true)}
-              onOpenGuide={() => setIsGuideModalOpen(true)}
-              currentUser={currentUser}
-              onSwitchUserRole={handleSwitchRole}
+              onLogout={() => setCurrentScreen('login')}
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              onOpenNavModal={() => setIsNavModalOpen(true)}
+              onOpenGuideModal={() => setIsGuideModalOpen(true)}
               onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
-              onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+              currentUser={currentUser}
+              isOpenOnMobile={isMobileMenuOpen}
+              onCloseMobile={() => setIsMobileMenuOpen(false)}
             />
 
-            {/* Scrollable Work Area */}
-            <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-20 lg:pb-8 bg-[#01122D] overflow-x-hidden">
-              <div className="max-w-7xl mx-auto">
-                <ErrorBoundary fallbackTitle="Ocorreu um erro ao carregar este ecrã">
-                  {renderActiveScreen()}
-                </ErrorBoundary>
-              </div>
-            </main>
+            {/* Main Content Column */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+              {/* Top Corporate Navbar */}
+              <Navbar
+                currentScreen={currentScreen}
+                onSelectScreen={setCurrentScreen}
+                onOpenQuickJump={() => setIsNavModalOpen(true)}
+                onOpenGuide={() => setIsGuideModalOpen(true)}
+                currentUser={currentUser}
+                onSwitchUserRole={handleSwitchRole}
+                onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+                onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+              />
 
-            {/* Mobile Bottom Navigation Bar */}
-            <MobileBottomNav
-              currentScreen={currentScreen}
-              onSelectScreen={setCurrentScreen}
-              onOpenMenu={() => setIsMobileMenuOpen(true)}
-            />
+              {/* Scrollable Work Area */}
+              <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-20 lg:pb-8 bg-[#01122D] overflow-x-hidden">
+                <div className="max-w-7xl mx-auto">
+                  <ErrorBoundary fallbackTitle="Ocorreu um erro ao carregar este ecrã">
+                    {renderActiveScreen()}
+                  </ErrorBoundary>
+                </div>
+              </main>
+
+              {/* Mobile Bottom Navigation Bar */}
+              <MobileBottomNav
+                currentScreen={currentScreen}
+                onSelectScreen={setCurrentScreen}
+                onOpenMenu={() => setIsMobileMenuOpen(true)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Screen Quick-Jump Modal */}
-      <PresentationNavigatorModal
-        isOpen={isNavModalOpen}
-        onClose={() => setIsNavModalOpen(false)}
-        currentScreen={currentScreen}
-        onSelectScreen={setCurrentScreen}
-      />
+        {/* Screen Quick-Jump Modal */}
+        <PresentationNavigatorModal
+          isOpen={isNavModalOpen}
+          onClose={() => setIsNavModalOpen(false)}
+          currentScreen={currentScreen}
+          onSelectScreen={setCurrentScreen}
+        />
 
-      {/* Presentation Speaker Narrative Guide Modal */}
-      <PresentationGuideModal
-        isOpen={isGuideModalOpen}
-        onClose={() => setIsGuideModalOpen(false)}
-        currentScreen={currentScreen}
-        onSelectScreen={setCurrentScreen}
-      />
+        {/* Presentation Speaker Narrative Guide Modal */}
+        <PresentationGuideModal
+          isOpen={isGuideModalOpen}
+          onClose={() => setIsGuideModalOpen(false)}
+          currentScreen={currentScreen}
+          onSelectScreen={setCurrentScreen}
+        />
 
-      {/* Role & Permissions Simulator Modal with Credentials & Screen Matrix */}
-      <RoleSimulatorModal
-        isOpen={isSimulatorModalOpen}
-        onClose={() => setIsSimulatorModalOpen(false)}
-        currentUser={currentUser}
-        onSelectUser={handleSelectCollaborator}
-        onNavigateToScreen={(screen) => {
-          setCurrentScreen(screen);
-          setIsSimulatorModalOpen(false);
-        }}
-      />
+        {/* Role & Permissions Simulator Modal with Credentials & Screen Matrix */}
+        <RoleSimulatorModal
+          isOpen={isSimulatorModalOpen}
+          onClose={() => setIsSimulatorModalOpen(false)}
+          currentUser={currentUser}
+          onSelectUser={handleSelectCollaborator}
+          onNavigateToScreen={(screen) => {
+            setCurrentScreen(screen);
+            setIsSimulatorModalOpen(false);
+          }}
+        />
 
-      {/* Pop-up de aviso de chamado criado */}
-      <TicketNotificationPopup onNavigate={setCurrentScreen} currentUser={currentUser} />
-    </div>
+        {/* Pop-up de aviso de chamado criado */}
+        <TicketNotificationPopup onNavigate={setCurrentScreen} currentUser={currentUser} />
+
+        {/* ====================================================================
+            SUÍTE CORPORATIVA DE ACESSIBILIDADE UNIVERSAL (WCAG 2.2 AAA & LBI)
+            Pessoas Cegas, Surdas, Cadeirantes e Mobilidade Reduzida
+            ==================================================================== */}
+        <AccessibilityModal />
+        <VisualNotificationBanner />
+      </div>
+    </AccessibilityProvider>
   );
 }
