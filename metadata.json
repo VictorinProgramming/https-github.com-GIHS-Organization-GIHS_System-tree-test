@@ -1,0 +1,6 @@
+{
+  "name": "GIHS System — Gestão Integrada",
+  "description": "GIHS System: Plataforma corporativa de gestão integrada para empresas de TI. Monitoramento 100% integrado com Suporte N1-N3, Engenharia, Ponto Biométrico Facial com Geolocalização, Help Desk e GIHS Agents.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

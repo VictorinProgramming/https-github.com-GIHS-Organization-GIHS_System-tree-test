@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 102" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;800;900&amp;display=swap');
+      .bycomp-font {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+    </style>
+  </defs>
+
+  <!-- Tagline: "enable the future" positioned directly above "omp" -->
+  <text 
+    x="195" 
+    y="21" 
+    font-size="18.5" 
+    font-weight="300" 
+    fill="#8e92be" 
+    letter-spacing="0.05em"
+    class="bycomp-font"
+  >enable the future</text>
+
+  <!-- Wordmark: All letters tightly joined "ByComp" -->
+  <!-- B - Royal / Periwinkle Blue -->
+  <text 
+    x="4" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#5c7cb8" 
+    class="bycomp-font"
+  >B</text>
+
+  <!-- C - Turquoise / Cyan (placed before 'y' in DOM so 'y' overlays nicely, but visually interlocking) -->
+  <text 
+    x="98" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#2eb4be" 
+    class="bycomp-font"
+  >C</text>
+
+  <!-- y - Deep Navy Blue overlapping B and C -->
+  <text 
+    x="50" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#223c6f" 
+    class="bycomp-font"
+  >y</text>
+
+  <!-- o - Vivid Orange nestled snugly inside C -->
+  <text 
+    x="154" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#f57f20" 
+    class="bycomp-font"
+  >o</text>
+
+  <!-- m - Royal / Periwinkle Blue right against 'o' -->
+  <text 
+    x="222" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#5c7cb8" 
+    class="bycomp-font"
+  >m</text>
+
+  <!-- p - Light Steel Blue joined seamlessly with 'm' -->
+  <text 
+    x="324" 
+    y="88" 
+    font-size="88" 
+    font-weight="900" 
+    fill="#9bb7cc" 
+    class="bycomp-font"
+  >p</text>
+</svg>
