@@ -80,10 +80,12 @@ body.a11y-high-contrast main {
   color: #FFFFFF !important;
 }
 
-body.a11y-high-contrast .bg-[#01122D],
-body.a11y-high-contrast .bg-[#000B1D],
-body.a11y-high-contrast .bg-[#041838],
-body.a11y-high-contrast .bg-[#011638] {
+body.a11y-high-contrast [class*="bg-\\[\\#01122D\\]"],
+body.a11y-high-contrast [class*="bg-\\[\\#000B1D\\]"],
+body.a11y-high-contrast [class*="bg-\\[\\#041838\\]"],
+body.a11y-high-contrast [class*="bg-\\[\\#011638\\]"],
+body.a11y-high-contrast .bg-gihs-navy,
+body.a11y-high-contrast .bg-gihs-card {
   background-color: #000000 !important;
   border: 1.5px solid #FFFFFF !important;
 }
@@ -113,8 +115,10 @@ body.a11y-high-contrast .text-slate-300 {
   color: #E2E8F0 !important;
 }
 
-body.a11y-high-contrast .text-[#0067FC],
-body.a11y-high-contrast .text-[#00A6FC] {
+body.a11y-high-contrast [class*="text-\\[\\#0067FC\\]"],
+body.a11y-high-contrast [class*="text-\\[\\#00A6FC\\]"],
+body.a11y-high-contrast .text-gihs-electric,
+body.a11y-high-contrast .text-gihs-luminous {
   color: #FFFF00 !important;
 }
 

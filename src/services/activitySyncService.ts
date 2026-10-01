@@ -208,6 +208,7 @@ class ActivitySyncService {
   public transferTicket(params: {
     ticketId: string;
     targetSector: Sector;
+    targetServiceClassification?: string;
     targetCollaboratorName?: string;
     observation?: string;
     currentUser: Collaborator;
@@ -221,6 +222,10 @@ class ActivitySyncService {
     const oldAssignee = ticket.assignedTo || 'Fila Geral';
 
     ticket.sector = params.targetSector;
+    if (params.targetServiceClassification) {
+      ticket.serviceClassification = params.targetServiceClassification;
+      (ticket as any).service_classification = params.targetServiceClassification;
+    }
     ticket.assignedTo = params.targetCollaboratorName ? params.targetCollaboratorName : undefined;
     ticket.assignedAvatar = undefined;
     if (ticket.status === 'Resolvido') {
@@ -229,7 +234,7 @@ class ActivitySyncService {
 
     const destinationLabel = params.targetCollaboratorName
       ? `${params.targetCollaboratorName} (Grupo: ${params.targetSector})`
-      : `Fila Geral do Grupo ${params.targetSector}`;
+      : `Fila Geral do Grupo ${params.targetSector}${params.targetServiceClassification ? ` • ${params.targetServiceClassification}` : ''}`;
 
     const newHistoryItem = {
       timestamp: `${dateStr} ${nowStr}`,

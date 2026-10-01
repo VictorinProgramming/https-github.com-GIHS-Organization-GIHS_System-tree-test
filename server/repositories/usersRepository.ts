@@ -12,6 +12,7 @@ export interface UserRow {
   sector_id?: string;
   sector_name?: string;
   area?: string;
+  service_classification?: string;
   avatar_url?: string;
   phone?: string;
   admission_date?: string;
@@ -43,7 +44,7 @@ export const usersRepository = {
     const res = await query<UserRow>(`
       SELECT 
         id, name, email, role, user_role, hierarchy_level,
-        sector_id, sector_name, area, avatar_url, phone, admission_date,
+        sector_id, sector_name, area, service_classification, avatar_url, phone, admission_date,
         status, current_task, contract_type, salary_bracket, work_schedule,
         emergency_contact, is_active, is_blocked,
         facial_active, facial_photo_url, facial_biometric_hash,
@@ -62,7 +63,7 @@ export const usersRepository = {
     const res = await query<UserRow>(`
       SELECT 
         id, name, email, role, user_role, hierarchy_level,
-        sector_id, sector_name, area, avatar_url, phone, admission_date,
+        sector_id, sector_name, area, service_classification, avatar_url, phone, admission_date,
         status, current_task, contract_type, salary_bracket, work_schedule,
         emergency_contact, is_active, is_blocked,
         facial_active, facial_photo_url, facial_biometric_hash,
@@ -81,7 +82,7 @@ export const usersRepository = {
     const res = await query<UserRow>(`
       SELECT 
         id, name, email, role, user_role, hierarchy_level,
-        sector_id, sector_name, area, avatar_url, phone, admission_date,
+        sector_id, sector_name, area, service_classification, avatar_url, phone, admission_date,
         status, current_task, contract_type, salary_bracket, work_schedule,
         emergency_contact, is_active, is_blocked,
         facial_active, facial_photo_url, facial_biometric_hash,
@@ -126,18 +127,18 @@ export const usersRepository = {
     const res = await query<UserRow>(`
       INSERT INTO users (
         id, name, email, password_hash, role, user_role, hierarchy_level,
-        sector_id, sector_name, area, avatar_url, phone, admission_date,
+        sector_id, sector_name, area, service_classification, avatar_url, phone, admission_date,
         status, current_task, contract_type, salary_bracket, work_schedule,
         emergency_contact, is_active, is_blocked,
         facial_active, facial_photo_url, facial_biometric_hash,
         facial_landmarks_count, facial_confidence_score, facial_registered_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7,
-        $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17, $18,
-        $19, $20, $21,
-        $22, $23, $24,
-        $25, $26, $27
+        $8, $9, $10, $11, $12, $13, $14,
+        $15, $16, $17, $18, $19,
+        $20, $21, $22,
+        $23, $24, $25,
+        $26, $27, $28
       )
       RETURNING *;
     `, [
@@ -151,6 +152,7 @@ export const usersRepository = {
       user.sector_id || null,
       user.sector_name || null,
       user.area || null,
+      user.service_classification || (user as any).serviceClassification || 'Suporte',
       user.avatar_url || null,
       user.phone || null,
       user.admission_date || new Date().toISOString().split('T')[0],
@@ -192,6 +194,8 @@ export const usersRepository = {
       sector: 'sector_name',
       sectorName: 'sector_name',
       sectorId: 'sector_id',
+      serviceClassification: 'service_classification',
+      service_classification: 'service_classification',
       avatar: 'avatar_url',
       avatarUrl: 'avatar_url',
       admissionDate: 'admission_date',
@@ -222,7 +226,7 @@ export const usersRepository = {
 
     const allowedColumns = new Set([
       'name', 'email', 'password_hash', 'role', 'user_role', 'hierarchy_level',
-      'sector_id', 'sector_name', 'area', 'avatar_url', 'phone', 'admission_date',
+      'sector_id', 'sector_name', 'area', 'service_classification', 'avatar_url', 'phone', 'admission_date',
       'status', 'current_task', 'contract_type', 'salary_bracket', 'work_schedule',
       'emergency_contact', 'is_active', 'is_blocked', 'facial_active', 'facial_photo_url',
       'facial_biometric_hash', 'facial_landmarks_count', 'facial_confidence_score', 'facial_registered_at',

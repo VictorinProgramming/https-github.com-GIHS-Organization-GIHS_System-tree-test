@@ -10,25 +10,65 @@ import {
 } from '../types';
 
 export const ORGANIZATIONAL_AREAS = [
-  'SUPORTE',
+  'PATRIMÔNIO',
+  'BANCO DE DADOS (DBA)',
+  'CYBER SECURITY',
+  'ADMINISTRATIVO',
+  'SUPORTE TÉCNICO',
   'DESENVOLVIMENTO',
-  'SEGURANÇA',
-  'DADOS',
-  'ADMINISTRATIVO'
+  'FAZENDA & FINANÇAS',
+  'SAÚDE',
+  'EDUCAÇÃO',
+  'MOBILIDADE URBANA',
+  'GESTÃO MUNICIPAL'
 ];
 
 export const INITIAL_ORGANIZATIONAL_SECTORS: OrganizationalSector[] = [
-  { id: 'sec-1', name: 'N1', area: 'SUPORTE', leaderName: 'Líder Suporte N1', collaboratorsCount: 1, slaTarget: '99.0%', description: 'Triagem de chamados, primeiro contato e atendimento ao usuário' },
-  { id: 'sec-2', name: 'N2', area: 'SUPORTE', leaderName: 'Líder Suporte N2', collaboratorsCount: 1, slaTarget: '97.5%', description: 'Resolução técnica avançada de redes, sistemas e SO' },
-  { id: 'sec-3', name: 'N3', area: 'SUPORTE', leaderName: 'Líder Suporte N3', collaboratorsCount: 1, slaTarget: '98.5%', description: 'Infraestrutura crítica, switches core, telecom e escalonamentos' },
-  { id: 'sec-4', name: 'Front-End', area: 'DESENVOLVIMENTO', leaderName: 'Líder Front-End', collaboratorsCount: 1, slaTarget: '99.5%', description: 'Aplicações web, interfaces do usuário, mobile e acessibilidade' },
-  { id: 'sec-5', name: 'Back-End', area: 'DESENVOLVIMENTO', leaderName: 'Líder Back-End', collaboratorsCount: 1, slaTarget: '99.0%', description: 'Microsserviços, APIs REST/gRPC, integrações bancárias e mensageria' },
-  { id: 'sec-6', name: 'Cyber Security', area: 'SEGURANÇA', leaderName: 'Líder Cyber Security', collaboratorsCount: 1, slaTarget: '99.9%', description: 'SOC, pentest, conformidade LGPD, resposta a incidentes e firewall' },
-  { id: 'sec-7', name: 'DBA', area: 'DADOS', leaderName: 'Líder DBA', collaboratorsCount: 1, slaTarget: '99.8%', description: 'Bancos de dados relacionais e NoSQL, replicação, backups e otimização' },
-  { id: 'sec-8', name: 'RH', area: 'ADMINISTRATIVO', leaderName: 'Líder RH', collaboratorsCount: 1, slaTarget: '99.0%', description: 'Recrutamento, departamento pessoal, benefícios e clima organizacional' },
-  { id: 'sec-9', name: 'Financeiro', area: 'ADMINISTRATIVO', leaderName: 'Líder Financeiro', collaboratorsCount: 1, slaTarget: '99.5%', description: 'Contas a pagar/receber, conciliação e faturamento corporativo' },
-  { id: 'sec-10', name: 'Gestão', area: 'ADMINISTRATIVO', leaderName: 'Victor (Master Admin)', collaboratorsCount: 1, slaTarget: '100%', description: 'Diretoria executiva, governança corporativa e planejamento estratégico' },
-  { id: 'sec-11', name: 'Patrimônio', area: 'ADMINISTRATIVO', leaderName: 'Líder Patrimônio', collaboratorsCount: 1, slaTarget: '98.0%', description: 'Facilities, controle de equipamentos, etiquetas e contratos' }
+  // 1. PATRIMÔNIO (Prefeitura)
+  { id: 'sec-patrim-1', name: 'Patrimônio', area: 'PATRIMÔNIO', leaderName: 'Líder Patrimônio Geral', collaboratorsCount: 4, slaTarget: '98.5%', description: 'Gestão geral de bens públicos, auditoria física e instalações' },
+  { id: 'sec-patrim-2', name: 'Patrimônio - Tombamento & Cadastro', area: 'PATRIMÔNIO', leaderName: 'Coord. Tombamento', collaboratorsCount: 2, slaTarget: '99.0%', description: 'Registro de novos bens, plaqueteamento com código de barras e NFs' },
+  { id: 'sec-patrim-3', name: 'Patrimônio - Transferência & Cautela', area: 'PATRIMÔNIO', leaderName: 'Coord. Cautela & Transferências', collaboratorsCount: 2, slaTarget: '98.0%', description: 'Termos de cautela de equipamentos, celulares corporativos e mudanças' },
+  { id: 'sec-patrim-4', name: 'Patrimônio - Baixa & Descarte', area: 'PATRIMÔNIO', leaderName: 'Comissão de Inservibilidade', collaboratorsCount: 1, slaTarget: '97.0%', description: 'Laudos de inservibilidade, alienação, descarte sustentável e leilões' },
+  { id: 'sec-patrim-5', name: 'Patrimônio - Inventário & Auditoria', area: 'PATRIMÔNIO', leaderName: 'Auditor Patrimonial', collaboratorsCount: 2, slaTarget: '99.0%', description: 'Inventário físico nas secretarias, conciliação e balanço anual' },
+  { id: 'sec-patrim-6', name: 'Patrimônio - Mobiliário & Facilities', area: 'PATRIMÔNIO', leaderName: 'Supervisor de Facilities', collaboratorsCount: 3, slaTarget: '96.5%', description: 'Conserto de móveis, cadeiras, armários e adequação de layout físico' },
+
+  // 2. BANCO DE DADOS (DBA)
+  { id: 'sec-dba-1', name: 'DBA', area: 'BANCO DE DADOS (DBA)', leaderName: 'Líder DBA Master', collaboratorsCount: 3, slaTarget: '99.9%', description: 'Administração de instâncias PostgreSQL/Oracle, replicação e tuning' },
+  { id: 'sec-dba-2', name: 'DBA - Backup & Disaster Recovery', area: 'BANCO DE DADOS (DBA)', leaderName: 'Especialista em Contingência', collaboratorsCount: 1, slaTarget: '99.99%', description: 'Rotinas automatizadas de backup, testes de restore e PITR' },
+  { id: 'sec-dba-3', name: 'DBA - Performance & Tuning', area: 'BANCO DE DADOS (DBA)', leaderName: 'Senior Performance Engineer', collaboratorsCount: 2, slaTarget: '99.5%', description: 'Otimização de queries pesadas de IPTU, saúde e índices avançados' },
+  { id: 'sec-dba-4', name: 'DBA - Modelagem & Migrações', area: 'BANCO DE DADOS (DBA)', leaderName: 'Arquiteto de Dados', collaboratorsCount: 1, slaTarget: '99.0%', description: 'DDL, schemas relacionais, constraints e versionamento de banco' },
+  { id: 'sec-dba-5', name: 'DBA - Extração SQL & BI', area: 'BANCO DE DADOS (DBA)', leaderName: 'Analista de BI Municipal', collaboratorsCount: 2, slaTarget: '98.5%', description: 'Extrações para Tribunal de Contas, Transparência e relatórios analíticos' },
+
+  // 3. CYBER SECURITY (Segurança da Informação & SOC)
+  { id: 'sec-sec-1', name: 'Cyber Security', area: 'CYBER SECURITY', leaderName: 'CISO / Líder Cyber Security', collaboratorsCount: 3, slaTarget: '99.9%', description: 'Defesa cibernética municipal, SOC 24/7, firewall e conformidade LGPD' },
+  { id: 'sec-sec-2', name: 'Cyber Security - SOC & Incidentes', area: 'CYBER SECURITY', leaderName: 'Líder SOC Municipal', collaboratorsCount: 2, slaTarget: '99.95%', description: 'Resposta rápida a incidentes, bloqueio de ameaças e contenção' },
+  { id: 'sec-sec-3', name: 'Cyber Security - Gestão de Acessos & VPN', area: 'CYBER SECURITY', leaderName: 'Analista IAM & VPN', collaboratorsCount: 2, slaTarget: '99.0%', description: 'Autenticação multifator, gestão de privilégios e túneis VPN' },
+  { id: 'sec-sec-4', name: 'Cyber Security - LGPD & Auditoria', area: 'CYBER SECURITY', leaderName: 'DPO / Encarregado LGPD', collaboratorsCount: 1, slaTarget: '98.5%', description: 'Conformidade da Lei Geral de Proteção de Dados e auditoria de trilhas' },
+  { id: 'sec-sec-5', name: 'Cyber Security - Firewall & Borda', area: 'CYBER SECURITY', leaderName: 'Engenheiro de Redes Seguras', collaboratorsCount: 2, slaTarget: '99.8%', description: 'Firewalls pfSense/Fortigate, proteção perimetral e filtro proxy' },
+
+  // 4. ADMINISTRAÇÃO MUNICIPAL
+  { id: 'sec-adm-1', name: 'Administrativo', area: 'ADMINISTRATIVO', leaderName: 'Diretor Geral de Administração', collaboratorsCount: 5, slaTarget: '98.0%', description: 'Protocolo, recursos humanos, compras públicas e contratos contínuos' },
+  { id: 'sec-adm-2', name: 'Administração - Protocolo & Processos', area: 'ADMINISTRATIVO', leaderName: 'Chefe de Protocolo', collaboratorsCount: 3, slaTarget: '99.0%', description: 'Abertura, tramitação eletrônica e numeração de processos oficiais' },
+  { id: 'sec-adm-3', name: 'Administração - Recursos Humanos / DP', area: 'ADMINISTRATIVO', leaderName: 'Gerente de RH e Folha', collaboratorsCount: 4, slaTarget: '98.5%', description: 'Gestão de servidores, ponto eletrônico, férias, benefícios e holerites' },
+  { id: 'sec-adm-4', name: 'Administração - Compras & Licitações', area: 'ADMINISTRATIVO', leaderName: 'Pregoeiro Oficial', collaboratorsCount: 3, slaTarget: '97.5%', description: 'Editais de licitação, pregões eletrônicos e termos de referência' },
+  { id: 'sec-adm-5', name: 'Administração - Gestão de Contratos', area: 'ADMINISTRATIVO', leaderName: 'Fiscal de Contratos', collaboratorsCount: 2, slaTarget: '98.0%', description: 'Fiscalização de terceirizados, aditivos e atestados de execução' },
+  { id: 'sec-adm-6', name: 'Administração - Almoxarifado Central', area: 'ADMINISTRATIVO', leaderName: 'Chefe de Almoxarifado', collaboratorsCount: 2, slaTarget: '98.0%', description: 'Controle e distribuição de materiais de consumo e suprimentos' },
+
+  // 5. SUPORTE TÉCNICO (TI)
+  { id: 'sec-sup-1', name: 'N1', area: 'SUPORTE TÉCNICO', leaderName: 'Líder Suporte N1', collaboratorsCount: 4, slaTarget: '99.0%', description: 'Triagem de chamados, primeiro contato, reset de senhas e impressoras' },
+  { id: 'sec-sup-2', name: 'N2', area: 'SUPORTE TÉCNICO', leaderName: 'Líder Suporte N2', collaboratorsCount: 4, slaTarget: '97.5%', description: 'Diagnóstico de hardware, rede local, Wi-Fi e telefonia VoIP' },
+  { id: 'sec-sup-3', name: 'N3', area: 'SUPORTE TÉCNICO', leaderName: 'Líder Suporte N3', collaboratorsCount: 3, slaTarget: '98.5%', description: 'Infraestrutura crítica, datacenter, virtualização e telecom core' },
+
+  // 6. DESENVOLVIMENTO
+  { id: 'sec-dev-1', name: 'Front-End', area: 'DESENVOLVIMENTO', leaderName: 'Líder Front-End', collaboratorsCount: 2, slaTarget: '99.5%', description: 'Portais públicos do cidadão, acessibilidade web e transparência' },
+  { id: 'sec-dev-2', name: 'Back-End', area: 'DESENVOLVIMENTO', leaderName: 'Líder Back-End', collaboratorsCount: 2, slaTarget: '99.0%', description: 'APIs municipais, integrações Gov.br, e-SUS e regras tributárias' },
+
+  // 7. FAZENDA, SAÚDE, EDUCAÇÃO & MOBILIDADE
+  { id: 'sec-faz-1', name: 'Fazenda', area: 'FAZENDA & FINANÇAS', leaderName: 'Auditor Tributário Chefe', collaboratorsCount: 3, slaTarget: '98.5%', description: 'Tributação, IPTU, ISS, Nota Fiscal Eletrônica e contabilidade pública' },
+  { id: 'sec-sau-1', name: 'Saúde', area: 'SAÚDE', leaderName: 'Coord. TI Saúde (SMS)', collaboratorsCount: 4, slaTarget: '99.5%', description: 'Prontuário eletrônico e-SUS, regulação de exames e informática em UPAs' },
+  { id: 'sec-edu-1', name: 'Educação', area: 'EDUCAÇÃO', leaderName: 'Coord. Tecnologia SEMED', collaboratorsCount: 3, slaTarget: '98.0%', description: 'Sistemas de gestão escolar, diário digital e laboratórios de informática' },
+  { id: 'sec-mob-1', name: 'Mobilidade Urbana', area: 'MOBILIDADE URBANA', leaderName: 'Diretor de Trânsito & Frota', collaboratorsCount: 3, slaTarget: '97.5%', description: 'Rastreamento veicular, autorização de frotas e fiscalização de trânsito' },
+  { id: 'sec-ges-1', name: 'Gestão', area: 'GESTÃO MUNICIPAL', leaderName: 'Victor Hugo (Master Admin)', collaboratorsCount: 2, slaTarget: '100%', description: 'Diretoria executiva, gabinete do prefeito e governança institucional' }
 ];
 
 export const ROLE_DEFINITIONS: UserRolePermissions[] = [
@@ -96,18 +136,20 @@ export const ROLE_DEFINITIONS: UserRolePermissions[] = [
 ];
 
 export const SECTORS: Sector[] = [
-  'Administrativo',
-  'RH',
-  'Financeiro',
-  'Gestão',
   'Patrimônio',
+  'DBA',
+  'Cyber Security',
+  'Administrativo',
   'N1',
   'N2',
   'N3',
   'Front-End',
   'Back-End',
-  'DBA',
-  'Cyber Security'
+  'Fazenda',
+  'Saúde',
+  'Educação',
+  'Mobilidade Urbana',
+  'Gestão'
 ];
 
 export const CURRENT_USER: Collaborator = {

@@ -43,8 +43,12 @@ import {
   deleteTask,
   handleSyncToPostgres,
   handleExportFromPostgres,
+  downloadDatabaseDump,
   getProviderConfig,
   setProviderConfig,
+  getSystemLogo,
+  setSystemLogo,
+  resetSystemLogo,
   handleLogin,
   handleSeedMasters,
   getOnCallShifts,
@@ -123,6 +127,10 @@ app.get('/api/client-network', getClientNetwork);
 app.get('/api/dashboard/metrics', getDashboardMetrics);
 app.post('/api/database/migrate', handleRunMigration);
 app.get('/api/database/schema-status', getSchemaStatus);
+app.get('/api/database/download-dump', downloadDatabaseDump);
+app.get('/api/settings/logo', getSystemLogo);
+app.post('/api/settings/logo', setSystemLogo);
+app.post('/api/settings/logo/reset', resetSystemLogo);
 
 // Test PostgreSQL route
 app.get('/api/db-status', async (req, res) => {

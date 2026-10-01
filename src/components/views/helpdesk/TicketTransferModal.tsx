@@ -11,6 +11,8 @@ import {
 import { SupportTicket, Sector, Collaborator } from '../../../types';
 import { dbService } from '../../../services/dbService';
 import { activitySyncService } from '../../../services/activitySyncService';
+import { ticketService } from '../../../services/ticketService';
+import { getServicesForSector, GLPI_SECTORS_CATALOG } from '../../../data/glpiServiceCatalog';
 
 interface TicketTransferModalProps {
   ticket: SupportTicket;
@@ -19,16 +21,20 @@ interface TicketTransferModalProps {
   onSuccess: (ticket: SupportTicket, msg: string) => void;
 }
 
-const SECTOR_OPTIONS: { id: Sector; name: string }[] = [
-  { id: 'N1', name: 'Suporte N1 (Atendimento Geral & Acessos)' },
-  { id: 'N2', name: 'Suporte N2 (Hardware, Redes & Diagnóstico)' },
-  { id: 'N3', name: 'Suporte N3 (Infraestrutura & Alta Complexidade)' },
-  { id: 'Patrimônio', name: 'Patrimônio & Gestão de Ativos / Etiquetas' },
-  { id: 'DBA', name: 'DBA & Banco de Dados' },
-  { id: 'Cyber Security', name: 'Cyber Security & Segurança da Informação' },
-  { id: 'Back-End', name: 'Engenharia Back-End' },
-  { id: 'Front-End', name: 'Engenharia Front-End' },
-  { id: 'Administrativo', name: 'Administrativo & Operações' }
+const SECTOR_OPTIONS: { id: Sector; name: string; group: string }[] = [
+  { id: 'Patrimônio', name: 'Patrimônio & Gestão de Bens Públicos', group: 'Patrimônio' },
+  { id: 'DBA', name: 'DBA • Banco de Dados, Backups & BI', group: 'Banco de Dados' },
+  { id: 'Cyber Security', name: 'Cyber Security • SOC & Segurança da Informação', group: 'Segurança' },
+  { id: 'Administrativo', name: 'Administrativo • Gestão Pública, RH & Compras', group: 'Administração' },
+  { id: 'N1', name: 'Suporte N1 (Atendimento Geral & Senhas)', group: 'TI' },
+  { id: 'N2', name: 'Suporte N2 (Hardware, Redes Locais & VoIP)', group: 'TI' },
+  { id: 'N3', name: 'Suporte N3 (Datacenter, Infraestrutura & Core)', group: 'TI' },
+  { id: 'Front-End', name: 'Front-End (Portais do Cidadão & Web)', group: 'Desenvolvimento' },
+  { id: 'Back-End', name: 'Back-End (APIs & Integrações Governamentais)', group: 'Desenvolvimento' },
+  { id: 'Fazenda', name: 'Fazenda & Tributação Municipal', group: 'Secretarias' },
+  { id: 'Saúde', name: 'Saúde (Prontuário e-SUS & UPAs)', group: 'Secretarias' },
+  { id: 'Educação', name: 'Educação (Gestão Escolar & SEMED)', group: 'Secretarias' },
+  { id: 'Mobilidade Urbana', name: 'Mobilidade Urbana & Trânsito', group: 'Secretarias' }
 ];
 
 export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
@@ -39,7 +45,12 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
 }) => {
   const [targetSector, setTargetSector] = useState<Sector>(() => {
     const nextSec = SECTOR_OPTIONS.find(s => s.id !== ticket.sector);
-    return nextSec ? nextSec.id : 'N2';
+    return nextSec ? nextSec.id : 'Patrimônio';
+  });
+
+  const [targetServiceClassification, setTargetServiceClassification] = useState<string>(() => {
+    const srvs = getServicesForSector(ticket.sector || 'Patrimônio');
+    return ticket.serviceClassification || (ticket as any).service_classification || (srvs.length > 0 ? srvs[0].id : 'Tombamento e Cadastro');
   });
 
   const [transferMode, setTransferMode] = useState<'group_queue' | 'specific_collaborator'>('group_queue');
@@ -71,6 +82,10 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
       if (s.includes('finan')) return 'financeiro';
       if (s.includes('gest')) return 'gestão';
       if (s.includes('patrim')) return 'patrimônio';
+      if (s.includes('fazend') || s.includes('tribut')) return 'fazenda';
+      if (s.includes('saud') || s.includes('sus')) return 'saúde';
+      if (s.includes('educ') || s.includes('semed')) return 'educação';
+      if (s.includes('mobili') || s.includes('transit') || s.includes('frota')) return 'mobilidade urbana';
       return s;
     };
 
@@ -80,7 +95,7 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
     return list.length > 0 ? list : dbUsers;
   }, [targetSector, dbUsers]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -88,14 +103,28 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
       const updated = activitySyncService.transferTicket({
         ticketId: ticket.id,
         targetSector,
+        targetServiceClassification,
         targetCollaboratorName: transferMode === 'specific_collaborator' && selectedCollaboratorName ? selectedCollaboratorName : undefined,
         observation: observation.trim() || 'Encaminhamento técnico operacional entre setores',
         currentUser
       });
 
+      // Synchronize to backend database
+      try {
+        await ticketService.updateTicket(ticket.id, {
+          sector: targetSector,
+          serviceClassification: targetServiceClassification,
+          service_classification: targetServiceClassification,
+          assignedTo: transferMode === 'specific_collaborator' && selectedCollaboratorName ? selectedCollaboratorName : null,
+          status: 'Em atendimento'
+        });
+      } catch (errSync) {
+        console.warn('Backend transfer sync notice:', errSync);
+      }
+
       const destText = transferMode === 'specific_collaborator' && selectedCollaboratorName
-        ? `${selectedCollaboratorName} (${targetSector})`
-        : `Fila Geral do Grupo ${targetSector}`;
+        ? `${selectedCollaboratorName} (${targetSector} • ${targetServiceClassification})`
+        : `Fila ${targetSector} [${targetServiceClassification}]`;
 
       onSuccess(updated, `✓ Chamado ${ticket.id} transferido com sucesso para ${destText}.`);
     } catch (err) {
@@ -160,25 +189,71 @@ export const TicketTransferModal: React.FC<TicketTransferModalProps> = ({
           </div>
 
           {/* Target Sector Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-[#37558d]" />
-              <span>Grupo de Serviço de Destino (Setor) *</span>
-            </label>
-            <select
-              value={targetSector}
-              onChange={(e) => {
-                setTargetSector(e.target.value as Sector);
-                setSelectedCollaboratorName('');
-              }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-sans"
-            >
-              {SECTOR_OPTIONS.map(sec => (
-                <option key={sec.id} value={sec.id} disabled={sec.id === ticket.sector}>
-                  {sec.name} {sec.id === ticket.sector ? '(Setor Atual)' : ''}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#37558d]" />
+                <span>Setor de Destino *</span>
+              </label>
+              <select
+                value={targetSector}
+                onChange={(e) => {
+                  const newSec = e.target.value as Sector;
+                  setTargetSector(newSec);
+                  setSelectedCollaboratorName('');
+                  const srvs = getServicesForSector(newSec);
+                  if (srvs.length > 0) {
+                    setTargetServiceClassification(srvs[0].id);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-sans"
+              >
+                {SECTOR_OPTIONS.map(sec => (
+                  <option key={sec.id} value={sec.id}>
+                    [{sec.group}] {sec.name} {sec.id === ticket.sector ? '(Setor Atual)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target Service Classification */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Classificação da Fila Técnica *</span>
+                </span>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  GLPI Prefeitura
+                </span>
+              </label>
+              <select
+                value={targetServiceClassification}
+                onChange={(e) => setTargetServiceClassification(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-blue-50/60 border border-blue-200 rounded-xl text-xs text-blue-900 font-bold focus:outline-none focus:border-[#37558d] transition-all"
+              >
+                <optgroup label={`⭐ Fila Recomendada: ${targetSector}`}>
+                  {getServicesForSector(targetSector).map(srv => (
+                    <option key={srv.id} value={srv.id}>
+                      {srv.name} (SLA: {srv.defaultSlaHours}h)
+                    </option>
+                  ))}
+                </optgroup>
+
+                {Object.entries(GLPI_SECTORS_CATALOG).map(([secKey, secData]) => {
+                  if (secKey.toLowerCase() === targetSector.toLowerCase()) return null;
+                  return (
+                    <optgroup key={secKey} label={`Catálogo GLPI: ${secData.label}`}>
+                      {secData.services.map(srv => (
+                        <option key={srv.id} value={srv.id}>
+                          {srv.name} (SLA: {srv.defaultSlaHours}h)
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </div>
           </div>
 
           {/* Transfer Mode */}

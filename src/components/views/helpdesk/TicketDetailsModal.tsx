@@ -85,6 +85,12 @@ export const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
               </span>
               <span>•</span>
               <span>Setor: <strong className="text-[#37558d]">{ticket.sector}</strong></span>
+              {(ticket.serviceClassification || (ticket as any).service_classification) && (
+                <>
+                  <span>•</span>
+                  <span>Fila Técnica: <strong className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{ticket.serviceClassification || (ticket as any).service_classification}</strong></span>
+                </>
+              )}
               <span>•</span>
               <span>Prioridade: <strong className={
                 ticket.priority === 'Crítica' ? 'text-rose-600' :

@@ -33,7 +33,8 @@ import {
   EyeOff,
   ShieldCheck,
   KeyRound,
-  Palette
+  Palette,
+  Terminal
 } from 'lucide-react';
 import { Collaborator } from '../../types';
 import { dbService, UserDbModel, FacialBiometryData, MASTER_USER_CONFIG } from '../../services/dbService';
@@ -1804,6 +1805,97 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <Download className="w-3.5 h-3.5" />
                   <span>Baixar schema.sql</span>
                 </button>
+              </div>
+            </div>
+
+            {/* BANCO DE DADOS SUPABASE COMPLETO PARA DOWNLOAD LOCAL */}
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-[#01122D] via-[#041838] to-[#01122D] text-white border-2 border-[#0067FC]/40 shadow-xl space-y-5">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#0A2854]">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0067FC] to-[#00A6FC] flex items-center justify-center text-white shrink-0 shadow-lg shadow-[#0067FC]/30">
+                    <Database className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                        Supabase PostgreSQL 17.6
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        Ref: pkigjnoclcsmsmztewap
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-black text-white mt-1">
+                      Download do Banco de Dados Completo (.sql)
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Dump unificado com 100% da arquitetura: schemas, extensões, enums, triggers, 18 tabelas, views e dados sincronizados.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <a
+                    href="/api/database/download-dump"
+                    download="gihs_supabase_complete_database.sql"
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xl shadow-emerald-500/30"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Baixar Banco Completo (.sql)</span>
+                  </a>
+
+                  <a
+                    href="/gihs_supabase_complete_database.sql"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-3 rounded-2xl bg-[#041838] hover:bg-[#0A2854] text-slate-200 border border-[#0A2854] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span>Ver Raw</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Detalhes do Projeto Supabase & Metadados */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="bg-[#000B1D]/80 p-3 rounded-xl border border-[#0A2854]">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Nome do Projeto</span>
+                  <strong className="text-white font-semibold mt-0.5 block truncate">GIHS SYSTEM</strong>
+                </div>
+                <div className="bg-[#000B1D]/80 p-3 rounded-xl border border-[#0A2854]">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Host Supabase</span>
+                  <strong className="text-cyan-400 font-mono text-[11px] mt-0.5 block truncate">db.pkigjnoclcsmsmztewap.supabase.co</strong>
+                </div>
+                <div className="bg-[#000B1D]/80 p-3 rounded-xl border border-[#0A2854]">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Schema Isolado</span>
+                  <strong className="text-emerald-400 font-mono mt-0.5 block">gihs_core</strong>
+                </div>
+                <div className="bg-[#000B1D]/80 p-3 rounded-xl border border-[#0A2854]">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Estrutura Exportada</span>
+                  <strong className="text-white font-mono mt-0.5 block">18 Tabelas + 2 Views</strong>
+                </div>
+              </div>
+
+              {/* Guia Rápido para Criar Localmente */}
+              <div className="bg-[#000B1D] border border-[#0A2854] rounded-2xl p-4 text-xs space-y-2">
+                <div className="flex items-center justify-between text-slate-300 font-bold">
+                  <span className="text-amber-400 flex items-center gap-1.5">
+                    <Terminal className="w-4 h-4" />
+                    Como Rodar Localmente no seu Computador (Docker / psql):
+                  </span>
+                  <button
+                    onClick={() => handleCopySql('docker run -d --name gihs-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 postgres:17\npsql -h localhost -p 5432 -U postgres -d postgres -f gihs_supabase_complete_database.sql', 'docker')}
+                    className="text-[11px] text-[#00A6FC] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    {copiedSql === 'docker' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSql === 'docker' ? 'Comando Copiado!' : 'Copiar Comandos'}</span>
+                  </button>
+                </div>
+                <pre className="p-3 bg-black/60 rounded-xl font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre leading-relaxed">
+{`# 1. Subir container PostgreSQL 17 localmente:
+docker run -d --name gihs-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 postgres:17
+
+# 2. Restaurar todo o banco de dados exportado com um único comando:
+psql -h localhost -p 5432 -U postgres -d postgres -f gihs_supabase_complete_database.sql`}
+                </pre>
               </div>
             </div>
 

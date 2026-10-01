@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS gihs_core.users (
     sector_id VARCHAR(64) REFERENCES gihs_core.sectors(id) ON DELETE SET NULL,
     sector_name VARCHAR(120),
     area VARCHAR(64),
+    service_classification VARCHAR(120) DEFAULT 'Suporte', -- Classificação da fila técnica (Suporte, Infraestrutura, Redes, Administração, Governança)
     avatar_url TEXT,
     phone VARCHAR(32),
     cpf_masked VARCHAR(20),
@@ -173,6 +174,7 @@ CREATE TABLE IF NOT EXISTS gihs_core.tickets (
     subject VARCHAR(255) NOT NULL,
     description TEXT,
     sector VARCHAR(64) NOT NULL, -- 'N1', 'N2', 'N3', 'Cyber Security', 'DBA', 'Infra'
+    service_classification VARCHAR(120) DEFAULT 'Suporte', -- Classificação da fila de serviço (Suporte, Infraestrutura, Redes, Administração, Governança)
     priority enum_ticket_priority NOT NULL DEFAULT 'MEDIA',
     status enum_ticket_status NOT NULL DEFAULT 'ABERTO',
     assigned_to VARCHAR(180),
@@ -438,20 +440,54 @@ FOR EACH ROW EXECUTE FUNCTION gihs_core.fn_set_timestamp();
 -- 18. SEED INICIAL DE DADOS ESSENCIAIS (BOOTSTRAP DO DBA)
 -- =========================================================================================
 
--- Inserção de Setores Oficiais
+-- Inserção de Setores Oficiais (Todos os Setores da Prefeitura / GLPI Central de Serviços)
 INSERT INTO gihs_core.sectors (id, code, name, area, leader_name, collaborators_count, description, sla_target)
 VALUES
-    ('sec-1', 'SEC-N1', 'N1', 'SUPORTE', 'Líder Suporte N1', 1, 'Triagem, primeiro contato e atendimento ao usuário', '99.0%'),
-    ('sec-2', 'SEC-N2', 'N2', 'SUPORTE', 'Líder Suporte N2', 1, 'Resolução técnica avançada de redes, sistemas e SO', '97.5%'),
-    ('sec-3', 'SEC-N3', 'N3', 'SUPORTE', 'Líder Suporte N3', 1, 'Infraestrutura crítica, switches core e telecom', '98.5%'),
-    ('sec-4', 'SEC-FE', 'Front-End', 'DESENVOLVIMENTO', 'Líder Front-End', 1, 'Aplicações web, interfaces do usuário e mobile', '99.5%'),
-    ('sec-5', 'SEC-BE', 'Back-End', 'DESENVOLVIMENTO', 'Líder Back-End', 1, 'Microsserviços, APIs REST/gRPC e banco de dados', '99.0%'),
-    ('sec-6', 'SEC-CYBER', 'Cyber Security', 'SEGURANCA', 'Líder Cyber Security', 1, 'SOC, pentest, conformidade LGPD e firewall', '99.9%'),
-    ('sec-7', 'SEC-DBA', 'DBA', 'DADOS', 'Líder DBA', 1, 'Bancos de dados relacionais e NoSQL, backups e tuning', '99.8%'),
-    ('sec-8', 'SEC-RH', 'RH', 'ADMINISTRATIVO', 'Líder RH', 1, 'Recrutamento, DP, benefícios e clima organizacional', '99.0%'),
-    ('sec-9', 'SEC-FIN', 'Financeiro', 'ADMINISTRATIVO', 'Líder Financeiro', 1, 'Contas a pagar/receber e faturamento corporativo', '99.5%'),
-    ('sec-10', 'SEC-GES', 'Gestão', 'GESTAO', 'Victor (Master Admin)', 1, 'Diretoria executiva e governança corporativa', '100%'),
-    ('sec-11', 'SEC-PAT', 'Patrimônio', 'ADMINISTRATIVO', 'Líder Patrimônio', 1, 'Facilities, controle de equipamentos e contratos', '98.0%')
+    -- Patrimônio Municipal
+    ('sec-patrim-1', 'SEC-PAT-GERAL', 'Patrimônio', 'PATRIMONIO', 'Líder Patrimônio Geral', 4, 'Gestão geral de bens públicos, auditoria física e instalações', '98.5%'),
+    ('sec-patrim-2', 'SEC-PAT-TOMB', 'Patrimônio - Tombamento & Cadastro', 'PATRIMONIO', 'Coord. Tombamento', 2, 'Registro de novos bens, plaqueteamento com código de barras e NFs', '99.0%'),
+    ('sec-patrim-3', 'SEC-PAT-CAUT', 'Patrimônio - Transferência & Cautela', 'PATRIMONIO', 'Coord. Cautela & Transferências', 2, 'Termos de cautela de equipamentos, celulares corporativos e mudanças', '98.0%'),
+    ('sec-patrim-4', 'SEC-PAT-BAIX', 'Patrimônio - Baixa & Descarte', 'PATRIMONIO', 'Comissão de Inservibilidade', 1, 'Laudos de inservibilidade, alienação, descarte sustentável e leilões', '97.0%'),
+    ('sec-patrim-5', 'SEC-PAT-INVE', 'Patrimônio - Inventário & Auditoria', 'PATRIMONIO', 'Auditor Patrimonial', 2, 'Inventário físico nas secretarias, conciliação e balanço anual', '99.0%'),
+    ('sec-patrim-6', 'SEC-PAT-MOBI', 'Patrimônio - Mobiliário & Facilities', 'PATRIMONIO', 'Supervisor de Facilities', 3, 'Conserto de móveis, cadeiras, armários e adequação de layout físico', '96.5%'),
+
+    -- DBA (Banco de Dados Municipal)
+    ('sec-dba-1', 'SEC-DBA-GERAL', 'DBA', 'DADOS', 'Líder DBA Master', 3, 'Administração de instâncias PostgreSQL/Oracle, replicação e tuning', '99.9%'),
+    ('sec-dba-2', 'SEC-DBA-BACK', 'DBA - Backup & Disaster Recovery', 'DADOS', 'Especialista em Contingência', 1, 'Rotinas automatizadas de backup, testes de restore e PITR', '99.99%'),
+    ('sec-dba-3', 'SEC-DBA-PERF', 'DBA - Performance & Tuning', 'DADOS', 'Senior Performance Engineer', 2, 'Otimização de queries pesadas de IPTU, saúde e índices avançados', '99.5%'),
+    ('sec-dba-4', 'SEC-DBA-MODE', 'DBA - Modelagem & Migrações', 'DADOS', 'Arquiteto de Dados', 1, 'DDL, schemas relacionais, constraints e versionamento de banco', '99.0%'),
+    ('sec-dba-5', 'SEC-DBA-EXTR', 'DBA - Extração SQL & BI', 'DADOS', 'Analista de BI Municipal', 2, 'Extrações para Tribunal de Contas, Transparência e relatórios analíticos', '98.5%'),
+
+    -- Cyber Security (Segurança da Informação & SOC)
+    ('sec-sec-1', 'SEC-CYBER-GERAL', 'Cyber Security', 'SEGURANCA', 'CISO / Líder Cyber Security', 3, 'Defesa cibernética municipal, SOC 24/7, firewall e conformidade LGPD', '99.9%'),
+    ('sec-sec-2', 'SEC-CYBER-SOC', 'Cyber Security - SOC & Incidentes', 'SEGURANCA', 'Líder SOC Municipal', 2, 'Resposta rápida a incidentes, bloqueio de ameaças e contenção', '99.95%'),
+    ('sec-sec-3', 'SEC-CYBER-IAM', 'Cyber Security - Gestão de Acessos & VPN', 'SEGURANCA', 'Analista IAM & VPN', 2, 'Autenticação multifator, gestão de privilégios e túneis VPN', '99.0%'),
+    ('sec-sec-4', 'SEC-CYBER-LGPD', 'Cyber Security - LGPD & Auditoria', 'SEGURANCA', 'DPO / Encarregado LGPD', 1, 'Conformidade da Lei Geral de Proteção de Dados e auditoria de trilhas', '98.5%'),
+    ('sec-sec-5', 'SEC-CYBER-FIRE', 'Cyber Security - Firewall & Borda', 'SEGURANCA', 'Engenheiro de Redes Seguras', 2, 'Firewalls pfSense/Fortigate, proteção perimetral e filtro proxy', '99.8%'),
+
+    -- Administração Municipal
+    ('sec-adm-1', 'SEC-ADM-GERAL', 'Administrativo', 'ADMINISTRATIVO', 'Diretor Geral de Administração', 5, 'Protocolo, recursos humanos, compras públicas e contratos contínuos', '98.0%'),
+    ('sec-adm-2', 'SEC-ADM-PROT', 'Administração - Protocolo & Processos', 'ADMINISTRATIVO', 'Chefe de Protocolo', 3, 'Abertura, tramitação eletrônica e numeração de processos oficiais', '99.0%'),
+    ('sec-adm-3', 'SEC-ADM-RH', 'Administração - Recursos Humanos / DP', 'ADMINISTRATIVO', 'Gerente de RH e Folha', 4, 'Gestão de servidores, ponto eletrônico, férias, benefícios e holerites', '98.5%'),
+    ('sec-adm-4', 'SEC-ADM-COMP', 'Administração - Compras & Licitações', 'ADMINISTRATIVO', 'Pregoeiro Oficial', 3, 'Editais de licitação, pregões eletrônicos e termos de referência', '97.5%'),
+    ('sec-adm-5', 'SEC-ADM-CONT', 'Administração - Gestão de Contratos', 'ADMINISTRATIVO', 'Fiscal de Contratos', 2, 'Fiscalização de terceirizados, aditivos e atestados de execução', '98.0%'),
+    ('sec-adm-6', 'SEC-ADM-ALMO', 'Administração - Almoxarifado Central', 'ADMINISTRATIVO', 'Chefe de Almoxarifado', 2, 'Controle e distribuição de materiais de consumo e suprimentos', '98.0%'),
+
+    -- Suporte Técnico TI
+    ('sec-1', 'SEC-N1', 'N1', 'SUPORTE', 'Líder Suporte N1', 4, 'Triagem de chamados, primeiro contato, reset de senhas e impressoras', '99.0%'),
+    ('sec-2', 'SEC-N2', 'N2', 'SUPORTE', 'Líder Suporte N2', 4, 'Diagnóstico de hardware, rede local, Wi-Fi e telefonia VoIP', '97.5%'),
+    ('sec-3', 'SEC-N3', 'N3', 'SUPORTE', 'Líder Suporte N3', 3, 'Infraestrutura crítica, datacenter, virtualização e telecom core', '98.5%'),
+
+    -- Desenvolvimento
+    ('sec-4', 'SEC-FE', 'Front-End', 'DESENVOLVIMENTO', 'Líder Front-End', 2, 'Portais públicos do cidadão, acessibilidade web e transparência', '99.5%'),
+    ('sec-5', 'SEC-BE', 'Back-End', 'DESENVOLVIMENTO', 'Líder Back-End', 2, 'APIs municipais, integrações Gov.br, e-SUS e regras tributárias', '99.0%'),
+
+    -- Órgãos Municipais
+    ('sec-faz-1', 'SEC-FAZ', 'Fazenda', 'FAZENDA', 'Auditor Tributário Chefe', 3, 'Tributação, IPTU, ISS, Nota Fiscal Eletrônica e contabilidade pública', '98.5%'),
+    ('sec-sau-1', 'SEC-SAU', 'Saúde', 'SAUDE', 'Coord. TI Saúde (SMS)', 4, 'Prontuário eletrônico e-SUS, regulação de exames e informática em UPAs', '99.5%'),
+    ('sec-edu-1', 'SEC-EDU', 'Educação', 'EDUCACAO', 'Coord. Tecnologia SEMED', 3, 'Sistemas de gestão escolar, diário digital e laboratórios de informática', '98.0%'),
+    ('sec-mob-1', 'SEC-MOB', 'Mobilidade Urbana', 'MOBILIDADE', 'Diretor de Trânsito & Frota', 3, 'Rastreamento veicular, autorização de frotas e fiscalização de trânsito', '97.5%'),
+    ('sec-10', 'SEC-GES', 'Gestão', 'GESTAO', 'Victor Hugo (Master Admin)', 2, 'Diretoria executiva, gabinete do prefeito e governança institucional', '100%')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     area = EXCLUDED.area,
@@ -588,6 +624,181 @@ VALUES
     ('ponto_tolerance_minutes', '{"minutes": 10}'::jsonb, 'Tolerância legal da Portaria 671 MTE'),
     ('facial_biometric_threshold', '{"min_confidence": 95.0}'::jsonb, 'Score mínimo de confiança para validação facial')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Inserção de Chamados Oficiais da Central de Serviços Municipal (GLPI - Todos os Setores)
+INSERT INTO gihs_core.tickets (
+    id, protocol, client, subject, description, sector, service_classification,
+    priority, status, assigned_to, requester_name, requester_email, open_time, sla_hours
+) VALUES
+    -- 1. Patrimônio
+    (
+        'tkt-pmj-pat-001',
+        'GLPI-2026-PAT01',
+        'Secretaria Municipal de Educação (SEMED)',
+        'Tombamento e Plaqueamento de 40 Novos Laptops Educacionais',
+        'Chegada de remessa de laptops para laboratórios da Escola Municipal Pref. Luiz Gomes. Necessário tombamento, emissão de plaquetas de patrimônio e registro no sistema.',
+        'Patrimônio',
+        'Tombamento e Cadastro',
+        'MEDIA',
+        'ABERTO',
+        'Carlos Mendes',
+        'Profª. Helena Souza (Diretora)',
+        'helena.souza@joinville.sc.gov.br',
+        '08:30',
+        24
+    ),
+    (
+        'tkt-pmj-pat-002',
+        'GLPI-2026-PAT02',
+        'Gabinete do Prefeito',
+        'Termo de Cautela e Transferência de Celular Corporativo e Tablet',
+        'Emissão e assinatura de termo de cautela para novos equipamentos institucionais da equipe de comunicação social da Prefeitura.',
+        'Patrimônio',
+        'Transferência e Cautela',
+        'ALTA',
+        'EM_ATENDIMENTO',
+        'Carlos Mendes',
+        'Marcelo Silveira (Assessor de Comunicação)',
+        'marcelo.silveira@joinville.sc.gov.br',
+        '09:15',
+        8
+    ),
+    -- 2. DBA (Banco de Dados)
+    (
+        'tkt-pmj-dba-001',
+        'GLPI-2026-DBA01',
+        'Secretaria da Fazenda (SEFAZ)',
+        'Otimização de Índices e Tuning em Queries do Lançamento do IPTU 2026',
+        'Queda de performance identificada nos relatórios de arrecadação de IPTU. Necessária criação de índices parciais e reindexação da base PostgreSQL.',
+        'DBA',
+        'Otimização e Tuning',
+        'ALTA',
+        'EM_ATENDIMENTO',
+        'Marcos Oliveira',
+        'Dr. Renato Farias (Auditor Fiscal)',
+        'renato.farias@joinville.sc.gov.br',
+        '08:45',
+        4
+    ),
+    (
+        'tkt-pmj-dba-002',
+        'GLPI-2026-DBA02',
+        'Tribunal de Contas e Controladoria Geral',
+        'Extração Analítica de Dados de Folha e Empenhos para Relatório Quadrimestral',
+        'Geração de views e dump sanitizado de dados de despesas públicas municipais para envio ao TCE/SC e alimentação do Portal da Transparência.',
+        'DBA',
+        'Extração e Auditoria de Dados',
+        'MEDIA',
+        'ABERTO',
+        'Marcos Oliveira',
+        'Juliana Paes (Controladoria Geral)',
+        'juliana.paes@joinville.sc.gov.br',
+        '10:00',
+        8
+    ),
+    -- 3. Cyber Security
+    (
+        'tkt-pmj-sec-001',
+        'GLPI-2026-SEC01',
+        'Secretaria Municipal de Saúde (SMS)',
+        'Liberação de VPN Segura com Autenticação MFA para Médicos Plantonistas',
+        'Acesso remoto seguro ao prontuário eletrônico e-SUS para equipe de médicos reguladores da telemedicina da UPA Leste.',
+        'Cyber Security',
+        'Gestão de Acessos e Privilégios',
+        'URGENTE',
+        'EM_ATENDIMENTO',
+        'Ana Beatriz Rocha',
+        'Dr. Cláudio Nogueira (Diretor Médico)',
+        'claudio.nogueira@joinville.sc.gov.br',
+        '07:50',
+        2
+    ),
+    (
+        'tkt-pmj-sec-002',
+        'GLPI-2026-SEC02',
+        'SOC Municipal 24/7',
+        'Bloqueio Preventivo de Ataque de Força Bruta contra Gateway pfSense',
+        'Alerta do SOC indicando tentativas anômalas de login originadas de IP internacional. Bloqueio em firewall perimetral e renovação de chaves SSH.',
+        'Cyber Security',
+        'Resposta a Incidentes SOC',
+        'CRITICA',
+        'EM_ATENDIMENTO',
+        'Ana Beatriz Rocha',
+        'Sistema SIEM Automático',
+        'soc-alerts@joinville.sc.gov.br',
+        '09:05',
+        1
+    ),
+    -- 4. Administração Municipal
+    (
+        'tkt-pmj-adm-001',
+        'GLPI-2026-ADM01',
+        'Secretaria de Habitação e Obras',
+        'Tramitação Prioritária de Processo Digital de Regularização Fundiária',
+        'Processo SEI nº 2026/0491-0 aguarda juntada de certidões e despacho da Procuradoria Geral do Município.',
+        'Administrativo',
+        'Protocolo Geral e Processos',
+        'MEDIA',
+        'ABERTO',
+        'Juliana Santos',
+        'Eng. Fabrício Lima',
+        'fabricio.lima@joinville.sc.gov.br',
+        '09:40',
+        8
+    ),
+    (
+        'tkt-pmj-adm-002',
+        'GLPI-2026-ADM02',
+        'Almoxarifado Central da Prefeitura',
+        'Requisição de Suprimentos e Papelaria para Período de Matrículas Escolares',
+        'Fornecimento de resmas de papel A4, toners de alta capacidade e pastas de arquivo para as secretarias escolares da rede municipal.',
+        'Administrativo',
+        'Suprimentos e Requisições',
+        'MEDIA',
+        'ABERTO',
+        'Juliana Santos',
+        'Mariana Freitas (Almoxarifado)',
+        'mariana.freitas@joinville.sc.gov.br',
+        '10:20',
+        12
+    ),
+    -- 5. Suporte Técnico N1 & N2
+    (
+        'tkt-pmj-sup-001',
+        'GLPI-2026-N101',
+        'Unidade de Pronto Atendimento (UPA Sul)',
+        'Impressora Térmica de Fichas de Triagem não Imprime Código de Barras',
+        'Impressora Zebra do guichê 2 da recepção da UPA parou de imprimir a etiqueta do Protocolo de Manchester dos pacientes.',
+        'N1',
+        'Suporte N1 - Periféricos e Impressão',
+        'URGENTE',
+        'ABERTO',
+        'Líder Suporte N1',
+        'Enfª. Tatiane Meira',
+        'tatiane.meira@joinville.sc.gov.br',
+        '08:10',
+        1
+    ),
+    (
+        'tkt-pmj-sup-002',
+        'GLPI-2026-N201',
+        'Secretaria de Proteção Civil e Defesa Civil',
+        'Ponto de Rede e Conexão de Monitoramento Meteorológico Interrompidos',
+        'Switch departamental perdeu link com o radar meteorológico municipal. Necessária inspeção presencial do cabeamento e conectorização.',
+        'N2',
+        'Suporte N2 - Redes Locais e Wi-Fi',
+        'ALTA',
+        'EM_ATENDIMENTO',
+        'Líder Suporte N2',
+        'Ten. Rafael Silveira (Defesa Civil)',
+        'defesacivil@joinville.sc.gov.br',
+        '09:30',
+        4
+    )
+ON CONFLICT (id) DO UPDATE SET
+    status = EXCLUDED.status,
+    priority = EXCLUDED.priority,
+    updated_at = CURRENT_TIMESTAMP;
 
 -- Preservação permanente da tabela de equipamentos e ativos
 -- Nenhuma exclusão em cascata deve ser executada automaticamente

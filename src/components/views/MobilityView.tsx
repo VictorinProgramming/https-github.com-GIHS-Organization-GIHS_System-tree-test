@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Navigation,
   Smartphone,
@@ -26,7 +26,13 @@ import {
   Compass,
   Crosshair,
   Check,
-  Loader2
+  Loader2,
+  Volume2,
+  VolumeX,
+  Bell,
+  ShieldAlert,
+  Siren,
+  User
 } from 'lucide-react';
 import {
   CorporateDevice,
@@ -141,9 +147,83 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('ALL');
 
-  const isManagerOrAdmin = useMemo(() => {
-    return ['SUPER_ADMIN', 'ADMINISTRATIVO', 'GESTOR'].includes(currentUser.userRole || '');
+  // ALERTA EM TEMPO REAL PARA DIRETORIA E ADMINISTRAÇÃO
+  const [silencedTripIds, setSilencedTripIds] = useState<string[]>([]);
+  const [isAlarmMuted, setIsAlarmMuted] = useState<boolean>(false);
+
+  const isDirectorOrAdmin = useMemo(() => {
+    return ['SUPER_ADMIN', 'ADMINISTRATIVO'].includes(currentUser.userRole || '') ||
+      currentUser.role?.toLowerCase().includes('diretor') ||
+      currentUser.role?.toLowerCase().includes('admin');
   }, [currentUser]);
+
+  const isManagerOrAdmin = useMemo(() => {
+    return isDirectorOrAdmin || ['GESTOR'].includes(currentUser.userRole || '');
+  }, [isDirectorOrAdmin, currentUser]);
+
+  // Viagens ativas em andamento
+  const activeTrips = useMemo(() => {
+    return trips.filter(t => t.status === 'EM_ANDAMENTO');
+  }, [trips]);
+
+  // Viagens que disparam alarme na tela do diretor/admin (não silenciadas)
+  const alarmingTrips = useMemo(() => {
+    if (!isDirectorOrAdmin) return [];
+    return activeTrips.filter(t => !silencedTripIds.includes(t.id));
+  }, [isDirectorOrAdmin, activeTrips, silencedTripIds]);
+
+  // Corrida ativa do próprio usuário logado (para perfil condutor/demais)
+  const myActiveTrip = useMemo(() => {
+    return trips.find(t => t.status === 'EM_ANDAMENTO' && (t.user_id === currentUser.id || t.user_name === currentUser.name));
+  }, [trips, currentUser]);
+
+  // Síntese de Alarme Sonoro via Web Audio API Nativa
+  const playAlarmSound = useCallback(() => {
+    if (isAlarmMuted) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(880, now);
+      osc1.frequency.exponentialRampToValueAtTime(580, now + 0.25);
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.linearRampToValueAtTime(0.01, now + 0.28);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.28);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(660, now + 0.3);
+      osc2.frequency.exponentialRampToValueAtTime(440, now + 0.55);
+      gain2.gain.setValueAtTime(0.18, now + 0.3);
+      gain2.gain.linearRampToValueAtTime(0, now + 0.58);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.3);
+      osc2.stop(now + 0.58);
+    } catch {
+      // Audio autoplay policy
+    }
+  }, [isAlarmMuted]);
+
+  // Alarme sonoro contínuo enquanto houver alerta ativo não silenciado na tela do Diretor / Admin
+  useEffect(() => {
+    if (isDirectorOrAdmin && alarmingTrips.length > 0 && !isAlarmMuted) {
+      playAlarmSound();
+      const interval = setInterval(() => {
+        playAlarmSound();
+      }, 7000);
+      return () => clearInterval(interval);
+    }
+  }, [isDirectorOrAdmin, alarmingTrips.length, isAlarmMuted, playAlarmSound]);
 
   // Função para capturar a localização física real via GPS do dispositivo
   const requestRealLocation = () => {
@@ -290,7 +370,20 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
     loadData();
     requestRealLocation();
 
+    // Polling contínuo de viagens e novos disparos de rotas a cada 5 segundos
+    const pollInterval = setInterval(async () => {
+      try {
+        const tripsRes = await apiBackendService.getMobilityTrips();
+        if (tripsRes.success && tripsRes.data) {
+          setTrips(tripsRes.data || []);
+        }
+      } catch {
+        // silencioso para não poluir console
+      }
+    }, 5000);
+
     return () => {
+      clearInterval(pollInterval);
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
@@ -453,6 +546,44 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao registrar devolução.');
+    }
+  };
+
+  // Exclusão de Celular Corporativo (Diretoria & Administração)
+  const handleDeleteDevice = async (deviceId: string, devName: string) => {
+    if (!window.confirm(`Deseja realmente remover o celular "${devName}" do inventário corporativo? Esta ação também removerá termos de custódia vinculados.`)) {
+      return;
+    }
+    try {
+      const res = await apiBackendService.deleteMobilityDevice(deviceId);
+      if (res.success) {
+        setSuccessMsg(`Celular corporativo "${devName}" removido com sucesso.`);
+        await loadData();
+        setTimeout(() => setSuccessMsg(null), 3500);
+      } else {
+        setErrorMsg(res.message || 'Erro ao remover celular.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Erro ao remover aparelho.');
+    }
+  };
+
+  // Exclusão de Veículo da Frota (Diretoria & Administração)
+  const handleDeleteVehicle = async (vehicleId: string, model: string, plate: string) => {
+    if (!window.confirm(`Deseja realmente remover o veículo ${model} (${plate}) da frota corporativa?`)) {
+      return;
+    }
+    try {
+      const res = await apiBackendService.deleteMobilityVehicle(vehicleId);
+      if (res.success) {
+        setSuccessMsg(`Veículo ${model} (${plate}) removido da frota com sucesso.`);
+        await loadData();
+        setTimeout(() => setSuccessMsg(null), 3500);
+      } else {
+        setErrorMsg(res.message || 'Erro ao remover veículo.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Erro ao remover veículo.');
     }
   };
 
@@ -679,9 +810,12 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
     return `${mins}min ${secs}s`;
   };
 
-  // Filtragem do Histórico
+  // Filtragem do Histórico (Diretor/Admin vê tudo; demais apenas suas próprias corridas)
   const filteredTrips = useMemo(() => {
     return trips.filter(t => {
+      if (!isDirectorOrAdmin && (t.user_id !== currentUser.id && t.user_name !== currentUser.name)) {
+        return false;
+      }
       if (historyStatusFilter !== 'ALL' && t.status !== historyStatusFilter) return false;
       if (historySearch) {
         const s = historySearch.toLowerCase();
@@ -693,7 +827,7 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
       }
       return true;
     });
-  }, [trips, historyStatusFilter, historySearch]);
+  }, [trips, isDirectorOrAdmin, currentUser, historyStatusFilter, historySearch]);
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300">
@@ -766,6 +900,130 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
         </div>
       </div>
 
+      {/* 🚨 ALARME EM TEMPO REAL NA TELA DO DIRETOR E ADMINISTRADOR */}
+      {isDirectorOrAdmin && alarmingTrips.length > 0 && (
+        <div className="bg-gradient-to-r from-rose-950/95 via-[#01122D] to-rose-950/95 border-2 border-rose-500 rounded-3xl p-5 shadow-2xl shadow-rose-950/80 animate-pulse relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500 text-rose-400 flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/30">
+                <Siren className="w-7 h-7 animate-bounce" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-rose-500 text-white font-black text-[10px] uppercase tracking-wider">
+                    🚨 ALARME EM TEMPO REAL: CARRO EM ROTA
+                  </span>
+                  <span className="text-xs text-rose-300 font-bold">
+                    {alarmingTrips.length} {alarmingTrips.length === 1 ? 'veículo em deslocamento ativo' : 'veículos em deslocamento ativos'}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-white tracking-tight">
+                  Alerta da Diretoria: Veículo Corporativo Acionado!
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Um colaborador acabou de iniciar trajeto com carro da frota. Acompanhe a telemetria, quem está com o veículo e o destino em tempo real.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsAlarmMuted(!isAlarmMuted)}
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isAlarmMuted
+                    ? 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                }`}
+                title={isAlarmMuted ? 'Ativar sirene sonora' : 'Silenciar som da sirene'}
+              >
+                {isAlarmMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 animate-pulse text-rose-400" />}
+                <span>{isAlarmMuted ? 'Sirene Silenciada' : 'Sirene Sonora Ativa'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSilencedTripIds(prev => [...prev, ...alarmingTrips.map(t => t.id)]);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                Reconhecer / Ciente
+              </button>
+            </div>
+          </div>
+
+          {/* Cards dos Carros Ativos e Horários */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-rose-900/60">
+            {alarmingTrips.map(trip => {
+              const linkedTicket = tickets.find(t => t.id === trip.ticket_id || t.protocol === trip.ticket_protocol);
+              return (
+                <div key={trip.id} className="bg-[#000B1D]/90 border border-rose-500/40 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[11px] font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">
+                        {trip.vehicle_plate}
+                      </span>
+                      <h4 className="text-sm font-bold text-white mt-1">{trip.vehicle_model}</h4>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 animate-pulse">
+                      Em Movimento
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <User className="w-3.5 h-3.5 text-[#00A6FC]" />
+                      <span className="text-slate-400">Quem está com o carro:</span>
+                      <strong className="text-white">{trip.user_name}</strong>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-300 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-slate-400">Horário de Saída para a Rota:</span>
+                      <strong className="text-amber-300">
+                        {new Date(trip.start_at).toLocaleTimeString('pt-BR')} ({new Date(trip.start_at).toLocaleDateString('pt-BR')})
+                      </strong>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-slate-400">Destino:</span>
+                      <span className="text-white truncate max-w-[240px]">{trip.destination}</span>
+                    </div>
+
+                    {linkedTicket && (
+                      <div className="mt-1 pt-1.5 border-t border-[#0A2854] flex items-center justify-between text-[11px]">
+                        <span className="text-purple-300 font-semibold truncate max-w-[180px]">
+                          Chamado #{linkedTicket.protocol || linkedTicket.id}: {linkedTicket.client}
+                        </span>
+                        <span className="font-mono text-amber-400 font-bold shrink-0">
+                          Aberto às {linkedTicket.openTime || (linkedTicket.createdAt ? new Date(linkedTicket.createdAt).toLocaleTimeString('pt-BR') : 'Horário Registrado')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => handleSelectTrip(trip.id)}
+                      className="w-full py-1.5 rounded-xl bg-gradient-to-r from-[#0067FC] to-[#00A6FC] hover:from-[#0052cc] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Rastrear este Carro no Mapa</span>
+                    </button>
+                    <button
+                      onClick={() => setSilencedTripIds(prev => [...prev, trip.id])}
+                      className="px-3 py-1.5 rounded-xl bg-[#041838] hover:bg-[#0A2854] text-slate-300 text-xs font-medium transition-all cursor-pointer shrink-0"
+                    >
+                      Silenciar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* BARRA DE STATUS DO GPS REAL */}
       <div className="bg-[#000B1D] border border-[#0A2854] rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
@@ -827,47 +1085,51 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
           }`}
         >
           <LocateFixed className="w-4 h-4" />
-          <span>Mapa & Rota em Tempo Real</span>
-          {selectedTrip && selectedTrip.status === 'EM_ANDAMENTO' && (
+          <span>{isDirectorOrAdmin ? 'Mapa & Rota em Tempo Real' : 'Minha Rota & Iniciar/Finalizar'}</span>
+          {((selectedTrip && selectedTrip.status === 'EM_ANDAMENTO') || myActiveTrip) && (
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
           )}
         </button>
 
-        <button
-          onClick={() => setActiveTab('VEICULOS')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === 'VEICULOS'
-              ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
-              : 'text-slate-400 hover:text-white hover:bg-[#041838]'
-          }`}
-        >
-          <Car className="w-4 h-4" />
-          <span>Veículos da Frota ({vehicles.length})</span>
-        </button>
+        {isDirectorOrAdmin && (
+          <>
+            <button
+              onClick={() => setActiveTab('VEICULOS')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'VEICULOS'
+                  ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#041838]'
+              }`}
+            >
+              <Car className="w-4 h-4" />
+              <span>Veículos da Frota ({vehicles.length})</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('DISPOSITIVOS')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === 'DISPOSITIVOS'
-              ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
-              : 'text-slate-400 hover:text-white hover:bg-[#041838]'
-          }`}
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>Celulares Corporativos ({devices.length})</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('DISPOSITIVOS')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'DISPOSITIVOS'
+                  ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#041838]'
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Celulares Corporativos ({devices.length})</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('CUSTODIA')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === 'CUSTODIA'
-              ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
-              : 'text-slate-400 hover:text-white hover:bg-[#041838]'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Custódia & Responsabilidade ({assignments.length})</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('CUSTODIA')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'CUSTODIA'
+                  ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#041838]'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Custódia & Responsabilidade ({assignments.length})</span>
+            </button>
+          </>
+        )}
 
         <button
           onClick={() => setActiveTab('HISTORICO')}
@@ -878,25 +1140,92 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Histórico de Corridas ({trips.length})</span>
+          <span>
+            {isDirectorOrAdmin
+              ? `Histórico de Todas as Corridas (${trips.length})`
+              : `Meu Histórico (${trips.filter(t => t.user_id === currentUser.id || t.user_name === currentUser.name).length})`}
+          </span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('DASHBOARD')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === 'DASHBOARD'
-              ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
-              : 'text-slate-400 hover:text-white hover:bg-[#041838]'
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>Painel de Indicadores</span>
-        </button>
+        {isDirectorOrAdmin && (
+          <button
+            onClick={() => setActiveTab('DASHBOARD')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'DASHBOARD'
+                ? 'bg-[#0067FC] text-white shadow-lg shadow-[#0067FC]/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#041838]'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Painel de Indicadores</span>
+          </button>
+        )}
       </div>
 
       {/* ABA 1: MAPA & ROTA EM TEMPO REAL COM LOCALIZAÇÃO FÍSICA REAL */}
       {activeTab === 'ROTAS' && (
         <div className="space-y-6">
+          {/* PAINEL OPERACIONAL RÁPIDO DO CONDUTOR (SE NÃO FOR DIRETORIA/ADMIN) */}
+          {!isDirectorOrAdmin && (
+            <div className="bg-[#01122D] border-2 border-[#0067FC]/40 rounded-3xl p-5 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                    myActiveTrip 
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-lg shadow-emerald-500/20' 
+                      : 'bg-[#0067FC]/15 text-[#00A6FC] border-[#0067FC]/40'
+                  }`}>
+                    <Car className={`w-6 h-6 ${myActiveTrip ? 'animate-pulse' : ''}`} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                        myActiveTrip 
+                          ? 'bg-emerald-950 text-emerald-400 border-emerald-800' 
+                          : 'bg-[#041838] text-slate-300 border-[#0A2854]'
+                      }`}>
+                        {myActiveTrip ? '● Corrida em Andamento' : 'Disponível na Base'}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        Condutor: <strong className="text-white">{currentUser.name}</strong>
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-white mt-0.5">
+                      {myActiveTrip 
+                        ? `Veículo: ${myActiveTrip.vehicle_model} (${myActiveTrip.vehicle_plate}) • Destino: ${myActiveTrip.destination}`
+                        : 'Pronto para iniciar novo deslocamento corporativo'}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {myActiveTrip
+                        ? `Saída registrada às ${new Date(myActiveTrip.start_at).toLocaleTimeString('pt-BR')}. Ao chegar no destino, clique em Finalizar Corrida.`
+                        : 'A Diretoria e a Administração recebem um alarme automático com seu horário de saída e veículo utilizado.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {myActiveTrip ? (
+                    <button
+                      onClick={() => handleOpenFinishModal(myActiveTrip)}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 cursor-pointer"
+                    >
+                      <Square className="w-4 h-4 fill-white" />
+                      <span>Finalizar Corrida</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsStartTripModalOpen(true)}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0067FC] to-[#00A6FC] hover:from-[#0052cc] text-white font-bold text-xs shadow-lg shadow-[#0067FC]/30 cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Iniciar Corrida</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Coluna 1 & 2: MAPA INTERATIVO REAL */}
             <div className="lg:col-span-2 bg-[#01122D] border border-[#0A2854] rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-4">
@@ -1081,11 +1410,24 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
               {selectedTrip && (
                 <div className="pt-4 border-t border-[#0A2854] space-y-2 text-xs">
                   <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Veículo:</span>
+                    <span className="text-slate-400">Condutor (Com o Carro):</span>
+                    <strong className="text-white flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-[#00A6FC]" />
+                      {selectedTrip.user_name}
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400">Horário de Saída para a Rota:</span>
+                    <strong className="font-mono text-amber-300">
+                      {new Date(selectedTrip.start_at).toLocaleTimeString('pt-BR')} ({new Date(selectedTrip.start_at).toLocaleDateString('pt-BR')})
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400">Veículo da Frota:</span>
                     <strong className="text-white">{selectedTrip.vehicle_model}</strong>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Placa:</span>
+                    <span className="text-slate-400">Placa Oficial:</span>
                     <strong className="font-mono text-[#00A6FC]">{selectedTrip.vehicle_plate}</strong>
                   </div>
                   {selectedTrip.last_fuel_date && (
@@ -1094,6 +1436,31 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                       <span className="font-mono text-amber-300">{new Date(selectedTrip.last_fuel_date).toLocaleDateString('pt-BR')}</span>
                     </div>
                   )}
+                  {(() => {
+                    const linkedTicket = tickets.find(t => t.id === selectedTrip.ticket_id || t.protocol === selectedTrip.ticket_protocol);
+                    if (!linkedTicket && !selectedTrip.ticket_protocol) return null;
+                    return (
+                      <div className="pt-2 border-t border-[#0A2854] space-y-1 bg-[#000B1D] p-2.5 rounded-xl border">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span className="text-purple-300 font-semibold">Chamado Vinculado:</span>
+                          <span className="font-mono text-purple-300 font-bold">#{selectedTrip.ticket_protocol || linkedTicket?.protocol}</span>
+                        </div>
+                        {linkedTicket && (
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-slate-400">Horário do Chamado:</span>
+                            <span className="font-mono text-amber-400 font-bold">
+                              {linkedTicket.openTime || (linkedTicket.createdAt ? new Date(linkedTicket.createdAt).toLocaleTimeString('pt-BR') : 'Horário Registrado')}
+                            </span>
+                          </div>
+                        )}
+                        {linkedTicket?.client && (
+                          <div className="text-[11px] text-slate-400 truncate">
+                            Cliente: <strong className="text-slate-300">{linkedTicket.client}</strong>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1152,13 +1519,24 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                       <p className="text-xs text-slate-400">{veh.fuel_type || 'Flex'}</p>
                     </div>
 
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                      veh.status === 'DISPONIVEL'
-                        ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800'
-                        : 'bg-amber-950/80 text-amber-400 border-amber-800'
-                    }`}>
-                      {veh.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        veh.status === 'DISPONIVEL'
+                          ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800'
+                          : 'bg-amber-950/80 text-amber-400 border-amber-800'
+                      }`}>
+                        {veh.status}
+                      </span>
+                      {isDirectorOrAdmin && (
+                        <button
+                          onClick={() => handleDeleteVehicle(veh.id, veh.model, veh.plate)}
+                          className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 text-rose-400 border border-rose-800/60 transition-all cursor-pointer"
+                          title={`Remover veículo ${veh.plate} da frota`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-[#0A2854] space-y-2.5 text-xs">
@@ -1251,15 +1629,26 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                       <p className="text-xs text-slate-400">{device.model}</p>
                     </div>
 
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                      device.specifications?.mobility_status === 'Em plantão'
-                        ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800'
-                        : device.specifications?.mobility_status === 'Em uso'
-                        ? 'bg-blue-950/80 text-blue-400 border-blue-800'
-                        : 'bg-slate-900 text-slate-400 border-slate-700'
-                    }`}>
-                      {device.specifications?.mobility_status || 'Disponível'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        device.specifications?.mobility_status === 'Em plantão'
+                          ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800'
+                          : device.specifications?.mobility_status === 'Em uso'
+                          ? 'bg-blue-950/80 text-blue-400 border-blue-800'
+                          : 'bg-slate-900 text-slate-400 border-slate-700'
+                      }`}>
+                        {device.specifications?.mobility_status || 'Disponível'}
+                      </span>
+                      {isDirectorOrAdmin && (
+                        <button
+                          onClick={() => handleDeleteDevice(device.id, device.name)}
+                          className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 text-rose-400 border border-rose-800/60 transition-all cursor-pointer"
+                          title={`Remover celular corporativo ${device.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Campos Obrigatórios em Destaque */}
@@ -1469,9 +1858,10 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-[#0A2854] bg-[#000B1D]/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="py-3 px-4">Data</th>
+                      <th className="py-3 px-4">Data & Horário de Saída</th>
                       <th className="py-3 px-4">Funcionário</th>
                       <th className="py-3 px-4">Veículo & Placa</th>
+                      <th className="py-3 px-4">Chamado & Horário</th>
                       <th className="py-3 px-4">Ponto A ➔ Ponto B</th>
                       <th className="py-3 px-4">KM Inicial / Final</th>
                       <th className="py-3 px-4">KM Percorrido</th>
@@ -1484,7 +1874,11 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                     {filteredTrips.map(trip => (
                       <tr key={trip.id} className="hover:bg-[#0067FC]/5">
                         <td className="py-3.5 px-4 font-mono">
-                          {new Date(trip.start_at).toLocaleDateString('pt-BR')}
+                          <span className="text-white block">{new Date(trip.start_at).toLocaleDateString('pt-BR')}</span>
+                          <span className="text-amber-300 font-bold text-[11px] flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3 text-amber-400" />
+                            Saída: {new Date(trip.start_at).toLocaleTimeString('pt-BR')}
+                          </span>
                         </td>
                         <td className="py-3.5 px-4 font-semibold text-white">
                           {trip.user_name}
@@ -1492,6 +1886,30 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                         <td className="py-3.5 px-4">
                           <span className="text-white block">{trip.vehicle_model}</span>
                           <span className="font-mono text-slate-400 text-[11px]">{trip.vehicle_plate}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-xs">
+                          {(() => {
+                            const linkedTicket = tickets.find(t => t.id === trip.ticket_id || t.protocol === trip.ticket_protocol);
+                            if (!linkedTicket && !trip.ticket_protocol) return <span className="text-slate-500 font-mono text-[11px]">—</span>;
+                            const openTime = linkedTicket?.openTime || (linkedTicket?.createdAt ? new Date(linkedTicket.createdAt).toLocaleTimeString('pt-BR') : null);
+                            return (
+                              <div className="space-y-0.5">
+                                <span className="px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800 text-[10px] font-mono block w-fit font-bold">
+                                  #{trip.ticket_protocol || linkedTicket?.protocol || 'CHAMADO'}
+                                </span>
+                                {openTime && (
+                                  <span className="text-[10px] text-amber-300 font-mono block">
+                                    Aberto às: <strong>{openTime}</strong>
+                                  </span>
+                                )}
+                                {linkedTicket?.client && (
+                                  <span className="text-[10px] text-slate-400 block truncate max-w-[140px]">
+                                    {linkedTicket.client}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="py-3.5 px-4 max-w-xs text-slate-300">
                           <span className="text-slate-400 block text-[10px]">Origem: {trip.origin_address || 'Partida'}</span>
@@ -1871,15 +2289,23 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-slate-300 block mb-1">Motorista / Técnico *</label>
-                  <select
-                    value={tripUserId}
-                    onChange={e => setTripUserId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#000B1D] border border-[#0A2854] text-xs text-white focus:outline-none focus:border-[#0067FC]"
-                  >
-                    {collaborators.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.sector || 'Geral'})</option>
-                    ))}
-                  </select>
+                  {isDirectorOrAdmin ? (
+                    <select
+                      value={tripUserId}
+                      onChange={e => setTripUserId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#000B1D] border border-[#0A2854] text-xs text-white focus:outline-none focus:border-[#0067FC]"
+                    >
+                      {collaborators.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.sector || 'Geral'})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full px-3 py-2.5 rounded-xl bg-[#000B1D] border border-[#0A2854] text-xs text-white flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-[#00A6FC]" />
+                      <span className="font-semibold">{currentUser.name}</span>
+                      <span className="text-[10px] text-slate-400">({currentUser.sector || 'Geral'})</span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1906,13 +2332,15 @@ export const MobilityView: React.FC<MobilityViewProps> = ({ currentUser }) => {
                     <Car className="w-4 h-4 text-[#0067FC]" />
                     Selecionar Carro da Frota *
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsNewVehicleModalOpen(true)}
-                    className="text-[11px] text-[#0067FC] hover:underline cursor-pointer"
-                  >
-                    + Novo Carro
-                  </button>
+                  {isDirectorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsNewVehicleModalOpen(true)}
+                      className="text-[11px] text-[#0067FC] hover:underline cursor-pointer"
+                    >
+                      + Novo Carro
+                    </button>
+                  )}
                 </div>
 
                 {vehicles.length > 0 ? (

@@ -192,17 +192,19 @@ export const syncController = {
         try {
           await query(`
             INSERT INTO tickets (
-              id, protocol, client, subject, description, sector,
+              id, protocol, client, subject, description, sector, service_classification,
               priority, status, assigned_to, assigned_avatar,
               requester_email, contact_email, open_time, sla_hours
             ) VALUES (
-              $1, $2, $3, $4, $5, $6,
-              $7, $8, $9, $10,
-              $11, $12, $13, $14
+              $1, $2, $3, $4, $5, $6, $7,
+              $8, $9, $10, $11,
+              $12, $13, $14, $15
             )
             ON CONFLICT (id) DO UPDATE SET
               status = EXCLUDED.status,
               priority = EXCLUDED.priority,
+              sector = EXCLUDED.sector,
+              service_classification = EXCLUDED.service_classification,
               assigned_to = EXCLUDED.assigned_to,
               updated_at = CURRENT_TIMESTAMP;
           `, [
@@ -212,6 +214,7 @@ export const syncController = {
             ticket.subject || ticket.title || 'Chamado Geral',
             ticket.description || null,
             ticket.sector || 'N1',
+            ticket.serviceClassification || (ticket as any).service_classification || 'Suporte',
             ticket.priority || 'Média',
             ticket.status || 'Aberto',
             ticket.assignedTo || ticket.assigned_to || null,

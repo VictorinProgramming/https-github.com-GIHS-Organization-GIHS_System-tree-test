@@ -61,6 +61,7 @@ export class ApiBackendService {
         user_role: user.userRole || 'COLABORADOR',
         sector_name: user.sector,
         area: user.area,
+        service_classification: user.serviceClassification || user.service_classification || 'Suporte',
         avatar_url: user.avatar,
         phone: user.phone,
         admission_date: user.admissionDate,
@@ -223,6 +224,7 @@ export class ApiBackendService {
         subject: ticket.subject || ticket.title,
         description: ticket.description,
         sector: ticket.sector,
+        service_classification: ticket.serviceClassification || (ticket as any).service_classification || 'Suporte',
         priority: ticket.priority,
         status: ticket.status,
         assigned_to: ticket.assignedTo,
@@ -557,6 +559,24 @@ export class ApiBackendService {
 
   async clearAllMobilityData() {
     return this.request<{ success: boolean; message: string }>('/mobility/clear-all', {
+      method: 'POST'
+    });
+  }
+
+  // System Logo & Branding
+  async getSystemLogo() {
+    return this.request<{ success: boolean; data: any }>('/settings/logo');
+  }
+
+  async updateSystemLogo(config: any) {
+    return this.request<{ success: boolean; data: any }>('/settings/logo', {
+      method: 'POST',
+      body: JSON.stringify(config)
+    });
+  }
+
+  async resetSystemLogo() {
+    return this.request<{ success: boolean; data: any }>('/settings/logo/reset', {
       method: 'POST'
     });
   }

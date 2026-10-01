@@ -17,6 +17,7 @@ import { SupportTicket, Sector, Priority, Collaborator } from '../../../types';
 import { activitySyncService } from '../../../services/activitySyncService';
 import { ticketService } from '../../../services/ticketService';
 import { dbService } from '../../../services/dbService';
+import { getServicesForSector, GLPI_SECTORS_CATALOG, getAllCatalogedServices } from '../../../data/glpiServiceCatalog';
 
 interface CreateTicketModalProps {
   isOpen?: boolean;
@@ -35,16 +36,27 @@ const COMMON_CLIENTS = [
   'Interno • GIHS Matriz'
 ];
 
-const AVAILABLE_SECTORS: { id: Sector; name: string; description: string }[] = [
-  { id: 'N1', name: 'N1 • Suporte Básico', description: 'Triagem, dúvidas de usuários e incidentes comuns' },
-  { id: 'N2', name: 'N2 • Infraestrutura & Redes', description: 'Roteamento, servidores, switches e falhas de rede' },
-  { id: 'N3', name: 'N3 • Engenharia & Especialistas', description: 'Escalação técnica profunda e arquitetura' },
-  { id: 'DBA', name: 'DBA • Banco de Dados', description: 'PostgreSQL, réplicas, backups e queries lentas' },
-  { id: 'Cyber Security', name: 'Cyber Security', description: 'Acessos, chaves SSH, firewall e políticas de segurança' },
-  { id: 'Patrimônio', name: 'Patrimônio & Hardware', description: 'Inventário de máquinas, mobília, monitores e reposição' },
-  { id: 'Front-End', name: 'Front-End Squad', description: 'Interfaces web, portais de clientes e bugs visuais' },
-  { id: 'Back-End', name: 'Back-End Squad', description: 'APIs, integrações com terceiros e microsserviços' },
-  { id: 'Administrativo', name: 'Administrativo & RH', description: 'Contratos, solicitações corporativas e DP' }
+const AVAILABLE_SECTORS: { id: Sector; name: string; description: string; group: string }[] = [
+  // Patrimônio
+  { id: 'Patrimônio', name: 'Patrimônio & Gestão de Bens Públicos', description: 'Tombamento, inventário, termos de cautela, descarte e manutenção de bens', group: 'Patrimônio' },
+  // DBA
+  { id: 'DBA', name: 'DBA • Banco de Dados, Backups & BI', description: 'Instâncias PostgreSQL/Oracle, tuning, disaster recovery e migrações', group: 'Banco de Dados' },
+  // Cyber Security
+  { id: 'Cyber Security', name: 'Cyber Security • SOC & Segurança da Informação', description: 'Firewall, acessos/VPN, LGPD, resposta a incidentes e pentest', group: 'Segurança da Informação' },
+  // Administração
+  { id: 'Administrativo', name: 'Administrativo • Gestão Pública, RH & Compras', description: 'Protocolo de processos, RH/ponto, licitações, contratos e almoxarifado', group: 'Administração Geral' },
+  // TI - Suporte
+  { id: 'N1', name: 'Suporte N1 • Triagem & Atendimento ao Servidor', description: 'Primeiro nível, reset de senhas, impressoras e estações', group: 'Tecnologia da Informação' },
+  { id: 'N2', name: 'Suporte N2 • Hardware, Redes & Telefonia IP', description: 'Manutenção de máquinas, Wi-Fi, pontos de rede e VoIP', group: 'Tecnologia da Informação' },
+  { id: 'N3', name: 'Suporte N3 • Datacenter, Servidores & Core', description: 'Engenharia de infraestrutura crítica, virtualização e telecom core', group: 'Tecnologia da Informação' },
+  // TI - Desenvolvimento
+  { id: 'Front-End', name: 'Front-End • Portais do Cidadão & Transparência', description: 'Interfaces web públicas municipais, formulários e acessibilidade', group: 'Desenvolvimento Web' },
+  { id: 'Back-End', name: 'Back-End • APIs & Microsserviços', description: 'APIs governamentais, integração e regras de negócio', group: 'Desenvolvimento Web' },
+  // Outras Secretarias Municipais
+  { id: 'Fazenda', name: 'Fazenda & Tributação Municipal', description: 'IPTU, ISS, Nota Fiscal Eletrônica e contabilidade pública', group: 'Secretarias Municipais' },
+  { id: 'Saúde', name: 'Saúde • Prontuário e-SUS & UPAs', description: 'Sistemas de saúde municipal, regulação e postos de atendimento', group: 'Secretarias Municipais' },
+  { id: 'Educação', name: 'Educação • Gestão Escolar & SEMED', description: 'Sistemas pedagógicos, matrículas online e laboratórios', group: 'Secretarias Municipais' },
+  { id: 'Mobilidade Urbana', name: 'Mobilidade Urbana & Trânsito (DETRANS)', description: 'Frota municipal, rastreamento de veículos e sinalização viária', group: 'Secretarias Municipais' }
 ];
 
 const SERVICE_TYPES = [
@@ -82,12 +94,16 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
     }
     const userSec = (currentUser.sector || '').toLowerCase();
     const found = AVAILABLE_SECTORS.find(s => s.id.toLowerCase() === userSec);
-    return found ? found.id : 'N1';
+    return found ? found.id : 'Patrimônio';
   })();
 
   const [subject, setSubject] = useState('');
   const [client, setClient] = useState('');
   const [sector, setSector] = useState<Sector>(initialSector);
+  const [serviceClassification, setServiceClassification] = useState<string>(() => {
+    const srvs = getServicesForSector(initialSector);
+    return srvs.length > 0 ? srvs[0].id : 'Tombamento e Cadastro';
+  });
   const [priority, setPriority] = useState<Priority>('Média');
   const [serviceType, setServiceType] = useState(SERVICE_TYPES[0]);
   const [description, setDescription] = useState('');
@@ -133,6 +149,8 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         requester: client.trim(),
         requesterEmail: currentUser.email || 'colaborador@bycomp.com.br',
         sector,
+        serviceClassification,
+        service_classification: serviceClassification,
         priority,
         category: serviceType,
         serviceType,
@@ -274,16 +292,24 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-[#37558d]" />
-                Fila Setorial de Destino *
+                Fila Setorial de Destino (Setores Municipais) *
               </label>
               <select
                 value={sector}
-                onChange={(e) => setSector(e.target.value as Sector)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#334b84] transition-all"
+                onChange={(e) => {
+                  const newSec = e.target.value as Sector;
+                  setSector(newSec);
+                  const srvs = getServicesForSector(newSec);
+                  if (srvs.length > 0) {
+                    setServiceClassification(srvs[0].id);
+                    setServiceType(srvs[0].name);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#334b84] transition-all"
               >
                 {AVAILABLE_SECTORS.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    [{s.group}] {s.name}
                   </option>
                 ))}
               </select>
@@ -292,24 +318,73 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
               </p>
             </div>
 
-            {/* Service Type */}
+            {/* Service Classification */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                Tipo de Serviço / Categoria
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Classificação da Fila Técnica GLPI *</span>
+                </span>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  Prefeitura / Todos os Setores
+                </span>
               </label>
               <select
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#334b84] transition-all"
+                value={serviceClassification}
+                onChange={(e) => {
+                  setServiceClassification(e.target.value);
+                  const allServices = getAllCatalogedServices();
+                  const match = allServices.find(s => s.serviceId === e.target.value);
+                  if (match) {
+                    setServiceType(match.serviceName);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 bg-blue-50/60 border border-blue-200 rounded-xl text-xs text-blue-900 font-bold focus:outline-none focus:border-[#334b84] transition-all"
               >
-                {SERVICE_TYPES.map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
+                <optgroup label={`⭐ Fila Direta do Setor ${sector} (Recomendada)`}>
+                  {getServicesForSector(sector).map(srv => (
+                    <option key={srv.id} value={srv.id}>
+                      {srv.name} (SLA: {srv.defaultSlaHours}h)
+                    </option>
+                  ))}
+                </optgroup>
+
+                {Object.entries(GLPI_SECTORS_CATALOG).map(([secKey, secData]) => {
+                  if (secKey.toLowerCase() === sector.toLowerCase()) return null;
+                  return (
+                    <optgroup key={secKey} label={`Catálogo GLPI: ${secData.label}`}>
+                      {secData.services.map(srv => (
+                        <option key={srv.id} value={srv.id}>
+                          {srv.name} (SLA: {srv.defaultSlaHours}h)
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
+              <p className="text-[10px] text-blue-700 mt-1 font-medium">
+                O chamado entrará exclusivamente na fila dos servidores/especialistas cadastrados nesta classificação.
+              </p>
             </div>
+          </div>
+
+          {/* Service Type / Categoria */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-emerald-600" />
+              Tipo de Serviço / Detalhamento da Demanda
+            </label>
+            <select
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#334b84] transition-all"
+            >
+              {SERVICE_TYPES.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Priority & SLA Selection */}

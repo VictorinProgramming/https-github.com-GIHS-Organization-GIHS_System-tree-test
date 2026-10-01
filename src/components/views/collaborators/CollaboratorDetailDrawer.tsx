@@ -117,11 +117,16 @@ export const CollaboratorDetailDrawer: React.FC<CollaboratorDetailDrawerProps> =
 
               <p className="text-xs text-slate-600 mt-0.5 font-medium">{c.role || 'Colaborador'}</p>
 
-              <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-mono">
+              <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-mono flex-wrap">
                 <span className="px-2 py-0.5 rounded-full bg-blue-50 text-[#37558d] border border-blue-200 font-bold">
                   Setor: {c.sector || 'Geral'}
                 </span>
                 <span>• Área: {c.area || 'TI'}</span>
+                {(c.serviceClassification || (c as any).service_classification) && (
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
+                    Fila Técnica: {c.serviceClassification || (c as any).service_classification}
+                  </span>
+                )}
               </div>
             </div>
           </div>

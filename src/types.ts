@@ -16,7 +16,7 @@ export interface UserRolePermissions {
 export interface OrganizationalSector {
   id: string;
   name: string;
-  area: 'SUPORTE' | 'DESENVOLVIMENTO' | 'SEGURANÇA' | 'DADOS' | 'ADMINISTRATIVO' | string;
+  area: 'PATRIMÔNIO' | 'BANCO DE DADOS (DBA)' | 'CYBER SECURITY' | 'ADMINISTRATIVO' | 'SUPORTE TÉCNICO' | 'DESENVOLVIMENTO' | 'FAZENDA & FINANÇAS' | 'SAÚDE' | 'EDUCAÇÃO' | 'MOBILIDADE URBANA' | 'GESTÃO MUNICIPAL' | string;
   leaderName?: string;
   collaboratorsCount: number;
   description?: string;
@@ -67,6 +67,8 @@ export interface Collaborator {
   facial_confidence_score?: number;
   facial_registered_at?: string;
   facial_notes?: string;
+  serviceClassification?: string;
+  service_classification?: string;
 }
 
 export interface Task {
@@ -193,6 +195,8 @@ export interface SupportTicket {
   description?: string;
   contactEmail?: string;
   slaLimitHours?: number;
+  serviceClassification?: string;
+  service_classification?: string;
   createdAt?: string;
   updatedAt?: string;
 }

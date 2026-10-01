@@ -8,6 +8,7 @@ export interface TicketRow {
   subject: string;
   description?: string;
   sector: string;
+  service_classification?: string;
   priority: string;
   status: string;
   assigned_to?: string;
@@ -69,6 +70,8 @@ export function mapRowToSupportTicket(row: any): SupportTicket {
     title: row.subject,
     description: row.description || '',
     sector: row.sector,
+    serviceClassification: row.service_classification || 'Suporte',
+    service_classification: row.service_classification || 'Suporte',
     priority: mapPriorityToFrontend(row.priority),
     status: mapStatusToFrontend(row.status),
     assignedTo: row.assigned_to || undefined,
@@ -131,15 +134,15 @@ export const ticketsRepository = {
 
     const res = await query<any>(`
       INSERT INTO tickets (
-        id, protocol, client, subject, description, sector,
+        id, protocol, client, subject, description, sector, service_classification,
         priority, status, assigned_to, assigned_avatar,
         requester_name, requester_email, contact_email, open_time, sla_hours,
         participant_collaborator, participant_user_id, participant_avatar
       ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7::enum_ticket_priority, $8::enum_ticket_status, $9, $10,
-        $11, $12, $13, $14, $15,
-        $16, $17, $18
+        $1, $2, $3, $4, $5, $6, $7,
+        $8::enum_ticket_priority, $9::enum_ticket_status, $10, $11,
+        $12, $13, $14, $15, $16,
+        $17, $18, $19
       )
       RETURNING *;
     `, [
@@ -149,6 +152,7 @@ export const ticketsRepository = {
       ticket.subject || ticket.title || 'Atendimento Geral',
       ticket.description || '',
       ticket.sector || 'N1',
+      ticket.serviceClassification || ticket.service_classification || 'Suporte',
       priority,
       status,
       ticket.assignedTo || ticket.assigned_to || null,
@@ -176,6 +180,8 @@ export const ticketsRepository = {
 
   async update(id: string, updates: any): Promise<SupportTicket | null> {
     const keyMap: Record<string, string> = {
+      serviceClassification: 'service_classification',
+      service_classification: 'service_classification',
       assignedTo: 'assigned_to',
       assignedAvatar: 'assigned_avatar',
       assignedUserId: 'assigned_user_id',
@@ -193,7 +199,7 @@ export const ticketsRepository = {
     };
 
     const allowedColumns = new Set([
-      'client', 'subject', 'description', 'sector', 'priority', 'status',
+      'client', 'subject', 'description', 'sector', 'service_classification', 'priority', 'status',
       'assigned_to', 'assigned_avatar', 'assigned_user_id', 'requester_name',
       'requester_email', 'contact_email', 'open_time', 'sla_hours',
       'resolved_at', 'resolved_by', 'resolution_summary',

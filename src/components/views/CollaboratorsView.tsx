@@ -53,6 +53,7 @@ import { Collaborator, UserRole, OrganizationalSector, ViewScreen } from '../../
 import { apiBackendService } from '../../services/apiBackendService';
 import { exportHierarchyToExcel, exportPrivateHRDossierToExcel } from '../../utils/excelExport';
 import { evaluatePassword } from '../../utils/passwordPolicy';
+import { getServicesForSector, GLPI_SECTORS_CATALOG } from '../../data/glpiServiceCatalog';
 import { PrivateAccessLock } from './collaborators/PrivateAccessLock';
 import { HRDossierTab } from './collaborators/HRDossierTab';
 import { CollaboratorDetailDrawer } from './collaborators/CollaboratorDetailDrawer';
@@ -197,6 +198,9 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
   const [newUserPhone, setNewUserPhone] = useState('(11) 98877-0000');
   const [newUserContractType, setNewUserContractType] = useState<'CLT' | 'PJ' | 'Estágio'>('CLT');
   const [newUserSalaryBracket, setNewUserSalaryBracket] = useState('R$ 4.800,00');
+  const [newUserServiceClassification, setNewUserServiceClassification] = useState<string>('Suporte N3');
+  const [isCustomClassification, setIsCustomClassification] = useState(false);
+  const [customClassificationText, setCustomClassificationText] = useState('');
 
   // New sector form state
   const [newSectorName, setNewSectorName] = useState('');
@@ -228,6 +232,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                 userRole: (pgU.user_role as UserRole) || 'COLABORADOR',
                 area: pgU.area || 'ADMINISTRATIVO',
                 sector: pgU.sector_name || 'Gestão',
+                serviceClassification: pgU.service_classification || pgU.serviceClassification || 'Suporte N3',
+                service_classification: pgU.service_classification || pgU.serviceClassification || 'Suporte N3',
                 email: pgU.email,
                 avatar: pgU.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
                 status: pgU.status || 'Em atividade',
@@ -389,6 +395,9 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
     const formattedEmail = newUserEmail || `${newUserName.toLowerCase().replace(/\s+/g, '.')}@bycomp.com.br`;
     const userId = `colab-${Date.now()}`;
+    const finalClassification = isCustomClassification && customClassificationText.trim()
+      ? customClassificationText.trim()
+      : (newUserServiceClassification || 'Suporte N3');
 
     const newUser: Collaborator = enrichCollaboratorWithHRData(
       {
@@ -398,6 +407,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         userRole: newUserAccessRole,
         area: newUserArea,
         sector: newUserSector,
+        serviceClassification: finalClassification,
+        service_classification: finalClassification,
         email: formattedEmail,
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         status: 'Em atividade',
@@ -422,6 +433,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         userRole: newUser.userRole,
         area: newUser.area,
         sector: newUser.sector,
+        serviceClassification: finalClassification,
+        service_classification: finalClassification,
         avatar: newUser.avatar,
         status: 'Em atividade',
         currentTask: newUser.currentTask,
@@ -465,6 +478,8 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
         userRole: editingUser.userRole,
         area: editingUser.area,
         sector: editingUser.sector,
+        service_classification: editingUser.serviceClassification || (editingUser as any).service_classification || 'Suporte N3',
+        serviceClassification: editingUser.serviceClassification || (editingUser as any).service_classification || 'Suporte N3',
         email: editingUser.email,
         phone: editingUser.phone,
         status: editingUser.status,
@@ -1279,17 +1294,93 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-[#37558d] mb-1.5">
-                    Setor
+                    Setor Municipal / Setor Organizacional
                   </label>
                   <select
                     value={newUserSector}
-                    onChange={(e) => setNewUserSector(e.target.value)}
+                    onChange={(e) => {
+                      const sec = e.target.value;
+                      setNewUserSector(sec);
+                      const srvs = getServicesForSector(sec);
+                      if (srvs.length > 0) {
+                        setNewUserServiceClassification(srvs[0].id);
+                        setIsCustomClassification(false);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all font-mono"
                   >
                     {availableSectorsForArea.map(sec => (
                       <option key={sec.id} value={sec.name}>{sec.name}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Classificação do Serviço GLPI / Fila Especializada para TODOS os Setores */}
+              <div className="p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200/90 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#37558d] flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-[#37558d]" />
+                    <span>Fila Técnica & Classificação do Serviço GLPI (Todos os Setores) *</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-full border border-blue-300/70">
+                    Catálogo GLPI Prefeitura
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-tight">
+                  Define a sub-fila de atendimento municipal para este colaborador. Chamados classificados para este serviço entrarão <strong>exclusivamente na fila deste profissional</strong>.
+                </p>
+                <div className="space-y-2">
+                  <select
+                    value={isCustomClassification ? 'CUSTOM' : newUserServiceClassification}
+                    onChange={(e) => {
+                      if (e.target.value === 'CUSTOM') {
+                        setIsCustomClassification(true);
+                      } else {
+                        setIsCustomClassification(false);
+                        setNewUserServiceClassification(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-white border border-blue-300 rounded-xl text-xs text-[#37558d] font-bold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d]"
+                  >
+                    {/* Serviços específicos do setor selecionado */}
+                    <optgroup label={`⭐ Especialidades do Setor ${newUserSector} (Recomendadas)`}>
+                      {getServicesForSector(newUserSector).map(srv => (
+                        <option key={srv.id} value={srv.id}>
+                          {srv.name} (SLA: {srv.defaultSlaHours}h)
+                        </option>
+                      ))}
+                    </optgroup>
+
+                    {/* Catálogo Completo de Todos os Setores Municipais (GLPI) */}
+                    {Object.entries(GLPI_SECTORS_CATALOG).map(([secKey, secData]) => {
+                      if (secKey.toLowerCase() === newUserSector.toLowerCase()) return null;
+                      return (
+                        <optgroup key={secKey} label={`Catálogo ${secData.label}`}>
+                          {secData.services.map(srv => (
+                            <option key={srv.id} value={srv.id}>
+                              {srv.name} (SLA: {srv.defaultSlaHours}h)
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+
+                    <optgroup label="Outras Especialidades / Manual">
+                      <option value="CUSTOM">Outro (Digitar classificação personalizada...)</option>
+                    </optgroup>
+                  </select>
+
+                  {isCustomClassification && (
+                    <input
+                      type="text"
+                      placeholder="Ex: Patrimônio - Gestão de Frotas ou DBA - Auditoria"
+                      value={customClassificationText}
+                      onChange={(e) => setCustomClassificationText(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-blue-400 rounded-xl text-xs text-[#37558d] font-bold focus:outline-none placeholder:text-slate-400"
+                      required
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1568,7 +1659,16 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                   </label>
                   <select
                     value={editingUser.sector}
-                    onChange={(e) => setEditingUser({ ...editingUser, sector: e.target.value })}
+                    onChange={(e) => {
+                      const sec = e.target.value;
+                      const srvs = getServicesForSector(sec);
+                      setEditingUser({
+                        ...editingUser,
+                        sector: sec,
+                        serviceClassification: srvs.length > 0 ? srvs[0].id : editingUser.serviceClassification,
+                        service_classification: srvs.length > 0 ? srvs[0].id : editingUser.service_classification
+                      });
+                    }}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#37558d] font-semibold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d] transition-all"
                   >
                     {sectors.map((s) => (
@@ -1577,6 +1677,68 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Classificação do Serviço GLPI / Fila Especializada para TODOS os Setores */}
+              <div className="p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200/90 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#37558d] flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-[#37558d]" />
+                    <span>Fila Técnica & Classificação do Serviço GLPI (Todos os Setores) *</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-full border border-blue-300/70">
+                    Catálogo GLPI Prefeitura
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-tight">
+                  Define em qual fila especializada os chamados deste usuário serão direcionados no sistema.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={editingUser.serviceClassification || (editingUser as any).service_classification || 'Suporte N3'}
+                    onChange={(e) => setEditingUser({
+                      ...editingUser,
+                      serviceClassification: e.target.value,
+                      service_classification: e.target.value
+                    })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-blue-300 rounded-xl text-xs text-[#37558d] font-bold focus:outline-none focus:border-[#37558d] focus:ring-1 focus:ring-[#37558d]"
+                  >
+                    {/* Serviços específicos do setor atual */}
+                    <optgroup label={`⭐ Especialidades de ${editingUser.sector} (Recomendadas)`}>
+                      {getServicesForSector(editingUser.sector).map(srv => (
+                        <option key={srv.id} value={srv.id}>
+                          {srv.name} (SLA: {srv.defaultSlaHours}h)
+                        </option>
+                      ))}
+                    </optgroup>
+
+                    {/* Catálogo de Todos os Demais Setores */}
+                    {Object.entries(GLPI_SECTORS_CATALOG).map(([secKey, secData]) => {
+                      if (secKey.toLowerCase() === (editingUser.sector || '').toLowerCase()) return null;
+                      return (
+                        <optgroup key={secKey} label={`Catálogo ${secData.label}`}>
+                          {secData.services.map(srv => (
+                            <option key={srv.id} value={srv.id}>
+                              {srv.name} (SLA: {srv.defaultSlaHours}h)
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Ou digite classificação manual personalizada..."
+                    value={editingUser.serviceClassification || (editingUser as any).service_classification || ''}
+                    onChange={(e) => setEditingUser({
+                      ...editingUser,
+                      serviceClassification: e.target.value,
+                      service_classification: e.target.value
+                    })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-blue-300 rounded-xl text-xs text-[#37558d] font-bold focus:outline-none placeholder:text-slate-400"
+                  />
                 </div>
               </div>
 
@@ -1980,6 +2142,11 @@ export const CollaboratorsView: React.FC<CollaboratorsViewProps> = ({
               <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-slate-50 text-[#37558d] border border-slate-200">
                 {c.sector}
               </span>
+              {(c.serviceClassification || (c as any).service_classification) && (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200" title="Classificação da Fila de Atendimento">
+                  Fila: {c.serviceClassification || (c as any).service_classification}
+                </span>
+              )}
             </div>
           </div>
         </div>

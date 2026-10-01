@@ -105,6 +105,8 @@ class TicketService {
       category: data.category || data.serviceType || 'Suporte Técnico',
       serviceType: data.serviceType || data.category || 'Suporte Técnico',
       sector: data.sector,
+      serviceClassification: data.serviceClassification || data.service_classification || 'Suporte',
+      service_classification: data.service_classification || data.serviceClassification || 'Suporte',
       priority: data.priority,
       status: data.status || 'Aberto',
       requesterEmail: data.requesterEmail || data.contactEmail || 'colaborador@bycomp.com.br',

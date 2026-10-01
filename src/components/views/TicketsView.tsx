@@ -58,6 +58,10 @@ export const normalizeSector = (sector: string = ''): string => {
   if (s.includes('finan')) return 'Financeiro';
   if (s.includes('gest')) return 'Gestão';
   if (s.includes('patrim')) return 'Patrimônio';
+  if (s.includes('fazend') || s.includes('tribut')) return 'Fazenda';
+  if (s.includes('saud') || s.includes('sus')) return 'Saúde';
+  if (s.includes('educ') || s.includes('semed')) return 'Educação';
+  if (s.includes('mobili') || s.includes('transit') || s.includes('frota')) return 'Mobilidade Urbana';
   return sector;
 };
 
@@ -70,6 +74,7 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
   const [tickets, setTickets] = useState<SupportTicket[]>(() => activitySyncService.getTickets());
   const [search, setSearch] = useState('');
   const [selectedQueueSector, setSelectedQueueSector] = useState<string>('TODOS');
+  const [selectedServiceClassification, setSelectedServiceClassification] = useState<string>('TODAS');
   const [priorityFilter, setPriorityFilter] = useState('TODOS');
   const [statusFilter, setStatusFilter] = useState('TODOS');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -138,16 +143,81 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
 
       const ticketNormSector = normalizeSector(t.sector);
 
-      // RBAC Sector Gate:
-      // If NOT management/admin: ticket MUST match user's sector!
+      // RBAC Sector & Service Classification Gate:
+      // If NOT management/admin (e.g. N1, N2, N3 specialist, technician):
       if (!isManagementOrAdmin) {
-        if (ticketNormSector !== userNormalizedSector) {
-          return false;
+        // If assigned directly to this user, they always have access to view it
+        if (t.assignedTo && t.assignedTo.toLowerCase() === (currentUser.name || '').toLowerCase()) {
+          // Allowed
+        } else {
+          // 1. Sector Check
+          if (ticketNormSector !== userNormalizedSector) {
+            return false;
+          }
+
+          // 2. Service Classification Check (TI: Suporte, Infraestrutura, Redes, Governança, etc.)
+          // Example from prompt:
+          // "Eu sou da T.I, trabalho como N3 Suporte, na minha fila deverá constar somente serviço N3. Porém existe a fila de Infraestrutura que existe o N3 também existes a equipe de Redes que tem o N3. Então deverá ser classificado."
+          const userClass = (currentUser.serviceClassification || (currentUser as any).service_classification || '').toLowerCase().trim();
+          const ticketClass = (t.serviceClassification || (t as any).service_classification || '').toLowerCase().trim();
+
+          if (userClass && ticketClass) {
+            const cleanUser = userClass.replace(/[^a-z0-9]/g, '');
+            const cleanTicket = ticketClass.replace(/[^a-z0-9]/g, '');
+            const isMatch = cleanUser === cleanTicket ||
+              cleanTicket.includes(cleanUser) ||
+              cleanUser.includes(cleanTicket) ||
+              (cleanUser.includes('suporte') && cleanTicket.includes('suporte')) ||
+              (cleanUser.includes('infra') && cleanTicket.includes('infra')) ||
+              (cleanUser.includes('rede') && cleanTicket.includes('rede')) ||
+              (cleanUser.includes('governan') && cleanTicket.includes('governan')) ||
+              (cleanUser.includes('admin') && cleanTicket.includes('admin')) ||
+              (cleanUser.includes('dba') && cleanTicket.includes('dba')) ||
+              (cleanUser.includes('cyber') && cleanTicket.includes('cyber')) ||
+              (cleanUser.includes('patrim') && cleanTicket.includes('patrim')) ||
+              (cleanUser.includes('tombamento') && cleanTicket.includes('tombamento')) ||
+              (cleanUser.includes('cautela') && cleanTicket.includes('cautela')) ||
+              (cleanUser.includes('inventario') && cleanTicket.includes('inventario')) ||
+              (cleanUser.includes('descarte') && cleanTicket.includes('descarte')) ||
+              (cleanUser.includes('mobiliario') && cleanTicket.includes('mobiliario')) ||
+              (cleanUser.includes('backup') && cleanTicket.includes('backup')) ||
+              (cleanUser.includes('tuning') && cleanTicket.includes('tuning')) ||
+              (cleanUser.includes('modelagem') && cleanTicket.includes('modelagem')) ||
+              (cleanUser.includes('replicacao') && cleanTicket.includes('replicacao')) ||
+              (cleanUser.includes('extra') && cleanTicket.includes('extra')) ||
+              (cleanUser.includes('soc') && cleanTicket.includes('soc')) ||
+              (cleanUser.includes('vpn') && cleanTicket.includes('vpn')) ||
+              (cleanUser.includes('lgpd') && cleanTicket.includes('lgpd')) ||
+              (cleanUser.includes('firewall') && cleanTicket.includes('firewall')) ||
+              (cleanUser.includes('protocolo') && cleanTicket.includes('protocolo')) ||
+              (cleanUser.includes('rh') && cleanTicket.includes('rh')) ||
+              (cleanUser.includes('compra') && cleanTicket.includes('compra')) ||
+              (cleanUser.includes('contrato') && cleanTicket.includes('contrato')) ||
+              (cleanUser.includes('almoxarif') && cleanTicket.includes('almoxarif')) ||
+              (cleanUser.includes('fazend') && cleanTicket.includes('fazend')) ||
+              (cleanUser.includes('tribut') && cleanTicket.includes('tribut')) ||
+              (cleanUser.includes('saude') && cleanTicket.includes('saude')) ||
+              (cleanUser.includes('educa') && cleanTicket.includes('educa')) ||
+              (cleanUser.includes('mobili') && cleanTicket.includes('mobili'));
+
+            if (!isMatch) {
+              return false;
+            }
+          }
         }
       } else {
         // Management/Admin can filter by specific sector or view all ('TODOS')
         if (selectedQueueSector !== 'TODOS' && ticketNormSector !== normalizeSector(selectedQueueSector)) {
           return false;
+        }
+
+        // Management/Admin can also filter by Service Classification
+        if (selectedServiceClassification !== 'TODAS') {
+          const ticketClass = (t.serviceClassification || (t as any).service_classification || '').toLowerCase();
+          const selClass = selectedServiceClassification.toLowerCase();
+          if (!ticketClass.includes(selClass)) {
+            return false;
+          }
         }
       }
 
@@ -170,15 +240,19 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
   const queueCounts = useMemo(() => {
     const counts: Record<string, number> = {
       TODOS: 0,
-      N1: 0,
-      N2: 0,
-      N3: 0,
       Patrimônio: 0,
       DBA: 0,
       'Cyber Security': 0,
-      'Back-End': 0,
+      Administrativo: 0,
+      N1: 0,
+      N2: 0,
+      N3: 0,
       'Front-End': 0,
-      Administrativo: 0
+      'Back-End': 0,
+      Fazenda: 0,
+      Saúde: 0,
+      Educação: 0,
+      'Mobilidade Urbana': 0
     };
 
     tickets.forEach(t => {
@@ -435,53 +509,121 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
             </div>
           </div>
 
-          {/* Sector Queue Pills (for Management/Admin or informational for standard users) */}
+          {/* Sector Queue Pills & Service Classification (for Management/Admin or dedicated banner for standard users) */}
           {isManagementOrAdmin ? (
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-2">
-              <span className="text-[11px] font-bold text-[#37558d] uppercase tracking-wider block">
-                Filas Setoriais Disponíveis (Acesso Executivo Global):
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  onClick={() => setSelectedQueueSector('TODOS')}
-                  className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    selectedQueueSector === 'TODOS'
-                      ? 'bg-[#37558d] text-white shadow-2xs'
-                      : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
-                  }`}
-                >
-                  <span>Todos os Setores (Global)</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === 'TODOS' ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
-                    {queueCounts.TODOS}
-                  </span>
-                </button>
-
-                {['N1', 'N2', 'N3', 'Patrimônio', 'DBA', 'Cyber Security', 'Back-End', 'Front-End', 'Administrativo'].map((sec) => (
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+              <div>
+                <span className="text-[11px] font-bold text-[#37558d] uppercase tracking-wider block mb-1.5">
+                  Filas Setoriais (Acesso Executivo Global):
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
-                    key={sec}
-                    onClick={() => setSelectedQueueSector(sec)}
+                    onClick={() => setSelectedQueueSector('TODOS')}
                     className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedQueueSector === sec
+                      selectedQueueSector === 'TODOS'
                         ? 'bg-[#37558d] text-white shadow-2xs'
                         : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
                     }`}
                   >
-                    <span>{sec}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === sec ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
-                      {queueCounts[sec] || 0}
+                    <span>Todos os Setores (Global)</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === 'TODOS' ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
+                      {queueCounts.TODOS}
                     </span>
                   </button>
-                ))}
+
+                  {[
+                    'Patrimônio',
+                    'DBA',
+                    'Cyber Security',
+                    'Administrativo',
+                    'N1',
+                    'N2',
+                    'N3',
+                    'Front-End',
+                    'Back-End',
+                    'Fazenda',
+                    'Saúde',
+                    'Educação',
+                    'Mobilidade Urbana'
+                  ].map((sec) => (
+                    <button
+                      key={sec}
+                      onClick={() => setSelectedQueueSector(sec)}
+                      className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        selectedQueueSector === sec
+                          ? 'bg-[#37558d] text-white shadow-2xs'
+                          : 'bg-slate-50 text-[#37558d] border border-slate-200 hover:bg-[#37558d]/10'
+                      }`}
+                    >
+                      <span>{sec}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedQueueSector === sec ? 'bg-white/25 text-white' : 'bg-[#37558d]/15 text-[#37558d]'}`}>
+                        {queueCounts[sec] || 0}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Service Classification Filter for Management */}
+              <div className="pt-2.5 border-t border-slate-100">
+                <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-blue-600" />
+                  Filtrar por Especialidade Municipal (GLPI Todos os Setores):
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'TODAS', label: 'Todos os Serviços' },
+                    { id: 'Patrimônio', label: 'Patrimônio & Bens' },
+                    { id: 'DBA', label: 'DBA / Dados' },
+                    { id: 'Cyber', label: 'Cyber Security & SOC' },
+                    { id: 'Administração', label: 'Administração & RH' },
+                    { id: 'Suporte', label: 'Suporte (N1/N2/N3)' },
+                    { id: 'Infraestrutura', label: 'Infraestrutura' },
+                    { id: 'Redes', label: 'Redes & Telecom' },
+                    { id: 'Fazenda', label: 'Fazenda & Tributos' },
+                    { id: 'Saúde', label: 'Saúde (e-SUS)' },
+                    { id: 'Educação', label: 'Educação' },
+                    { id: 'Mobilidade', label: 'Mobilidade & Frota' }
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedServiceClassification(item.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                        selectedServiceClassification === item.id
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-blue-50/70 text-blue-800 border border-blue-200 hover:bg-blue-100'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#37558d] font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Fila Ativa: <strong>{userNormalizedSector}</strong></span>
+            <div className="bg-white border-2 border-blue-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#37558d] font-bold text-sm shrink-0">
+                  <Layers className="w-5 h-5 text-[#37558d]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800">Sua Fila Técnica Direcionada:</span>
+                    <span className="px-2 py-0.5 rounded-md bg-[#37558d] text-white text-[11px] font-mono font-bold">
+                      Setor: {userNormalizedSector}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 text-[11px] font-mono font-bold">
+                      Classificação: {currentUser.serviceClassification || (currentUser as any).service_classification || 'Suporte N3'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Exibindo exclusivamente chamados direcionados para <strong>{currentUser.serviceClassification || (currentUser as any).service_classification || 'Suporte'}</strong> no setor {userNormalizedSector}.
+                  </p>
+                </div>
               </div>
-              <span className="text-[11px] text-slate-500 font-mono">
-                Regra de Isolamento Setorial Ativa
+              <span className="text-[11px] text-slate-500 font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
+                Isolamento por Especialidade Ativo
               </span>
             </div>
           )}
@@ -581,6 +723,12 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
                         <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-[#37558d] font-mono text-[11px] font-semibold">
                           Setor: {ticket.sector}
                         </span>
+                        {(ticket.serviceClassification || (ticket as any).service_classification) && (
+                          <span className="px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-mono text-[11px] font-bold flex items-center gap-1">
+                            <Layers className="w-3 h-3 text-blue-600" />
+                            <span>Fila: {ticket.serviceClassification || (ticket as any).service_classification}</span>
+                          </span>
+                        )}
                         <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold ${
                           ticket.priority === 'Crítica'
                             ? 'bg-rose-100 text-rose-700 border border-rose-200'

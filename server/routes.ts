@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { usersRepository } from './repositories/usersRepository.js';
 import { pontoRepository } from './repositories/pontoRepository.js';
 import { ticketsRepository } from './repositories/ticketsRepository.js';
@@ -143,6 +145,75 @@ export async function setProviderConfig(req: Request, res: Response) {
       updatedAt: new Date().toISOString()
     });
     res.json({ success: true, config: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+/**
+ * System Logo & Branding Controllers
+ */
+export async function getSystemLogo(req: Request, res: Response) {
+  try {
+    const config = await settingsRepository.getLogoConfig();
+    res.json({ success: true, data: config });
+  } catch (err: any) {
+    res.json({
+      success: true,
+      data: {
+        title: 'GIHS SYSTEMS',
+        tagline: 'Enterprise System . 100% Monitorado',
+        tagline_color: '#00A6FC',
+        primary_color: '#00A6FC',
+        secondary_color: '#0067FC',
+        logo_url: '/gihs-logo.svg',
+        is_custom: true
+      }
+    });
+  }
+}
+
+export async function setSystemLogo(req: Request, res: Response) {
+  try {
+    const updated = await settingsRepository.setLogoConfig(req.body);
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function resetSystemLogo(req: Request, res: Response) {
+  try {
+    const defaultConfig = {
+      title: 'GIHS SYSTEMS',
+      tagline: 'Enterprise System . 100% Monitorado',
+      tagline_color: '#00A6FC',
+      primary_color: '#00A6FC',
+      secondary_color: '#0067FC',
+      logo_url: '/gihs-logo.svg',
+      is_custom: true,
+      updated_at: new Date().toISOString()
+    };
+    const updated = await settingsRepository.setLogoConfig(defaultConfig);
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+/**
+ * Controller de Download do Dump Completo do Banco de Dados (Supabase / PostgreSQL)
+ */
+export async function downloadDatabaseDump(req: Request, res: Response) {
+  try {
+    const dumpPath = path.resolve(process.cwd(), 'server', 'gihs_supabase_complete_database.sql');
+    if (!fs.existsSync(dumpPath)) {
+      return res.status(404).json({ success: false, error: 'Arquivo de dump do banco de dados não encontrado.' });
+    }
+    res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="gihs_supabase_complete_database.sql"');
+    const fileStream = fs.createReadStream(dumpPath);
+    fileStream.pipe(res);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
