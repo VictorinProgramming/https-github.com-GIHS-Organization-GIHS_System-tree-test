@@ -7,9 +7,13 @@ import {
   ChevronDown,
   Menu,
   Settings,
-  Accessibility
+  Accessibility,
+  Palette,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { ViewScreen, Collaborator, UserRole } from '../types';
 import { MOCK_ALERTS, CURRENT_USER } from '../data/mockData';
 import { GIHSIcon } from './GIHSIcon';
@@ -58,6 +62,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [time, setTime] = useState('09:02:18');
   const { setIsModalOpen } = useAccessibility();
+  const { 
+    setIsColorModalOpen, 
+    isDark, 
+    isLight, 
+    primaryColor, 
+    toggleThemeMode,
+    navbarColor,
+    isNavbarLight
+  } = useTheme();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -77,18 +90,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="h-16 bg-[#01122D] border-b border-[#0A2854] px-3 sm:px-5 flex items-center justify-between z-20 shrink-0 select-none">
+    <header 
+      id="app-top-navbar"
+      style={{ backgroundColor: navbarColor }}
+      className={`h-16 ${isNavbarLight ? 'border-slate-200 text-slate-900 shadow-xs' : 'border-[#0A2854] text-slate-100'} border-b px-3 sm:px-5 flex items-center justify-between z-20 shrink-0 select-none transition-colors duration-200`}
+    >
       {/* Breadcrumb and Screen Title */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Mobile Hamburger Button */}
         <button
           onClick={onToggleMobileMenu}
           id="btn-navbar-mobile-menu"
-          className="lg:hidden min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl bg-[#041838] hover:bg-[#0067FC] hover:text-white active:scale-95 text-[#00A6FC] border border-[#0A2854] transition-all cursor-pointer shrink-0 z-30 group"
+          className={`lg:hidden min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl ${isNavbarLight ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-[#041838] text-[#00A6FC] border-[#0A2854]'} hover:bg-[#0067FC] hover:text-white active:scale-95 border transition-all cursor-pointer shrink-0 z-30 group`}
           title="Abrir menu de navegação lateral"
           aria-label="Abrir menu de navegação lateral"
         >
-          <Menu className="w-5 h-5 text-[#00A6FC] group-hover:text-white transition-colors" />
+          <Menu className="w-5 h-5 group-hover:text-white transition-colors" />
         </button>
 
         {/* Small Screen Logo */}
@@ -102,16 +119,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Screen Title */}
         <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-[#00A6FC]/80 font-bold">
-            <span className="hidden sm:inline">GIHS System</span>
-            <span className="hidden sm:inline">/</span>
-            <span className="text-white font-bold truncate">{currentMeta.category}</span>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold">
+            <span className={isNavbarLight ? 'text-slate-500 hidden sm:inline' : 'text-[#00A6FC] hidden sm:inline'}>GIHS System</span>
+            <span className="hidden sm:inline text-slate-400">/</span>
+            <span className="font-bold truncate" style={{ color: primaryColor }}>{currentMeta.category}</span>
           </div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xs sm:text-sm font-black text-white tracking-tight truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-none">
+            <h2 className={`text-xs sm:text-sm font-black tracking-tight truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-none ${isNavbarLight ? 'text-slate-900' : 'text-white'}`}>
               {currentMeta.title}
             </h2>
-            <span className="hidden lg:inline text-xs text-slate-400 font-semibold border-l border-[#0A2854] pl-2 truncate">
+            <span className={`hidden lg:inline text-xs font-semibold border-l pl-2 truncate ${isNavbarLight ? 'border-slate-300 text-slate-500' : 'border-[#0A2854] text-slate-400'}`}>
               {currentMeta.subtitle}
             </span>
           </div>
@@ -119,50 +136,74 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Right Action Widgets */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Live Date & Time Widget */}
         <div
           id="navbar-datetime-widget"
-          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#041838] border border-[#0A2854] text-xs font-mono text-slate-300"
+          className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-mono ${isNavbarLight ? 'bg-slate-100/90 border-slate-200 text-slate-700' : 'bg-[#041838] border-[#0A2854] text-slate-300'}`}
           title="Data e hora sincronizada do GIHS System"
         >
-          <div className="w-5 h-5 rounded-md bg-[#01122D] flex items-center justify-center text-[#00A6FC] shrink-0">
-            <Clock className="w-3.5 h-3.5 text-[#00A6FC]" />
+          <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isNavbarLight ? 'bg-white text-slate-700 border border-slate-200' : 'bg-[#01122D] text-[#00A6FC]'}`}>
+            <Clock className="w-3.5 h-3.5" />
           </div>
-          <span className="hidden sm:inline text-slate-300 font-bold tracking-tight">16/09/2026</span>
-          <span className="text-[#0A2854] hidden sm:inline">•</span>
-          <span className="bg-[#01122D] text-[#00A6FC] font-black px-2 py-0.5 rounded-md border border-[#0A2854] tracking-wider">
+          <span className="hidden sm:inline font-bold tracking-tight">16/09/2026</span>
+          <span className="opacity-40 hidden sm:inline">•</span>
+          <span className={`font-black px-2 py-0.5 rounded-md border tracking-wider ${isNavbarLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#01122D] text-[#00A6FC] border-[#0A2854]'}`}>
             {time}
           </span>
         </div>
-
-        {/* Attendance Status Badge */}
-        <button
-          onClick={() => onSelectScreen('registro_ponto')}
-          id="btn-navbar-timeclock-pill"
-          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#041838] hover:bg-[#0067FC] border border-[#0A2854] hover:border-[#00A6FC] text-slate-200 hover:text-white text-xs font-semibold transition-all active:scale-95 cursor-pointer group"
-          title="Ponto registrado hoje às 08:02. Clique para abrir Registro de Ponto"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 group-hover:bg-white"></span>
-          </span>
-          <span className="font-bold text-slate-200 group-hover:text-white transition-colors">Ponto: 08:02</span>
-          <span className="hidden md:inline text-[10px] bg-emerald-950/80 text-emerald-400 group-hover:text-white px-1.5 py-0.2 rounded font-semibold border border-emerald-800 transition-colors">
-            Expediente
-          </span>
-        </button>
 
         {/* Universal Accessibility Button */}
         <button
           onClick={() => setIsModalOpen(true)}
           id="btn-navbar-accessibility"
-          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white text-xs font-bold transition-all active:scale-95 cursor-pointer group shrink-0"
+          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 cursor-pointer group shrink-0 ${isNavbarLight ? 'bg-slate-100/90 border-slate-200 text-slate-700 hover:bg-slate-200' : 'border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white'}`}
           title="Central de Acessibilidade Universal (Alt + A) — Leitor de Tela, Libras e Modos Motores"
           aria-label="Abrir Central de Acessibilidade"
         >
-          <Accessibility className="w-4 h-4 text-[#00A6FC] group-hover:text-white transition-colors" />
+          <Accessibility className="w-4 h-4 text-[#00A6FC] group-hover:scale-110 transition-transform" />
           <span className="hidden lg:inline">Acessibilidade</span>
+        </button>
+
+        {/* One-Click Quick Toggle: Fundo Claro (Branco) vs Fundo Escuro (Azul) */}
+        <button
+          onClick={toggleThemeMode}
+          id="btn-navbar-toggle-mode"
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
+            isDark
+              ? 'border-cyan-500/40 bg-[#041838] text-cyan-300 hover:bg-[#06204a]'
+              : 'border-amber-500/40 bg-amber-50 text-amber-900 hover:bg-amber-100'
+          }`}
+          title={isDark ? 'Alternar Fundo: Clique para MODO CLARO (Fundo Branco #FFFFFF)' : 'Alternar Fundo: Clique para MODO ESCURO (Fundo Azul #01122D)'}
+          aria-label="Alternar modo de fundo claro ou escuro"
+        >
+          {isDark ? (
+            <>
+              <Moon className="w-4 h-4 text-cyan-400" />
+              <span className="hidden md:inline">Fundo Azul</span>
+            </>
+          ) : (
+            <>
+              <Sun className="w-4 h-4 text-amber-500" />
+              <span className="hidden md:inline">Fundo Branco</span>
+            </>
+          )}
+        </button>
+
+        {/* Cores & Layout Studio Modal Trigger */}
+        <button
+          onClick={() => setIsColorModalOpen(true)}
+          id="btn-navbar-theme-customizer"
+          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 cursor-pointer group shrink-0 ${isNavbarLight ? 'bg-slate-100/90 border-slate-200 text-slate-700 hover:bg-slate-200' : 'border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white'}`}
+          title="Personalizar Cores do Layout e Esquemas de Cores (Alt + C)"
+          aria-label="Personalizar cores e layout do sistema"
+        >
+          <div
+            className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-xs shrink-0 transition-transform group-hover:scale-110"
+            style={{ backgroundColor: primaryColor }}
+          />
+          <Palette className="w-4 h-4 text-[#00A6FC] transition-colors" />
+          <span className="hidden xl:inline">Cores</span>
         </button>
 
         {/* Notification Alert */}
@@ -170,7 +211,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             id="btn-navbar-notifications"
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] hover:text-white transition-all cursor-pointer group"
+            className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer group ${isNavbarLight ? 'border-slate-200 bg-slate-100/90 hover:bg-[#0067FC] hover:text-white text-slate-700' : 'border-[#0A2854] bg-[#041838] hover:bg-[#0067FC] hover:text-white'}`}
             title="Alertas e Notificações do GIHS System"
           >
             <Bell className="w-4 h-4 text-[#00A6FC] group-hover:text-white transition-colors shrink-0" />

@@ -24,11 +24,15 @@ import {
   Clock3,
   Shield,
   Layers,
-  LogIn
+  LogIn,
+  Palette,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ViewScreen, Collaborator } from '../../types';
 import { GIHSLogo } from '../GIHSLogo';
 import { useAccessibility } from '../../contexts/AccessibilityContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface HomeViewProps {
   currentUser: Collaborator;
@@ -51,6 +55,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ currentUser, onNavigate }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('TODOS');
   const { setIsModalOpen, highContrast } = useAccessibility();
+  const { 
+    isLight, 
+    isDark, 
+    primaryColor, 
+    backgroundColor, 
+    navbarColor,
+    isNavbarLight,
+    cardColor,
+    isCardLight,
+    toggleThemeMode, 
+    setIsColorModalOpen 
+  } = useTheme();
 
   // Módulos sincronizados com a barra de navegação à esquerda
   const modules: ModuleItem[] = [
@@ -281,26 +297,75 @@ export const HomeView: React.FC<HomeViewProps> = ({ currentUser, onNavigate }) =
   }, [modules, selectedCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#000B1D] text-white flex flex-col">
+    <div 
+      style={{ backgroundColor }}
+      className={`min-h-screen ${isLight ? 'text-slate-900' : 'text-white'} flex flex-col transition-colors duration-200`}
+    >
       {/* BARRA SUPERIOR DE BOAS-VINDAS & ACESSIBILIDADE */}
-      <header className="border-b border-[#0A2854] bg-[#01122D]/95 backdrop-blur-md px-4 sm:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-30 shadow-xl">
+      <header 
+        style={{ backgroundColor: navbarColor }}
+        className={`border-b ${isNavbarLight ? 'border-slate-200 text-slate-900 shadow-sm' : 'border-[#0A2854] text-white shadow-xl'} backdrop-blur-md px-4 sm:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-30 transition-colors duration-200`}
+      >
         <div className="flex items-center gap-3">
           <GIHSLogo variant="system" mode="transparent" height={38} showTagline={false} />
-          <div className="h-6 w-px bg-[#0A2854] hidden sm:block" />
-          <span className="text-xs font-mono font-bold tracking-wider text-[#00A6FC] uppercase hidden sm:inline">
+          <div className={`h-6 w-px ${isNavbarLight ? 'bg-slate-300' : 'bg-[#0A2854]'} hidden sm:block`} />
+          <span className="text-xs font-mono font-bold tracking-wider uppercase hidden sm:inline" style={{ color: primaryColor }}>
             Hub de Acesso Geral • Portal de Início
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          {/* Alternar Modo Claro (Branco) / Escuro (Azul) */}
+          <button
+            type="button"
+            onClick={toggleThemeMode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isDark
+                ? 'border-cyan-500/40 bg-[#041838] text-cyan-300 hover:bg-[#06204a]'
+                : 'border-amber-500/40 bg-amber-50 text-amber-900 hover:bg-amber-100'
+            }`}
+            title={isDark ? 'Mudar para Modo Claro (Fundo Branco #FFFFFF)' : 'Mudar para Modo Escuro (Fundo Azul #01122D)'}
+          >
+            {isDark ? (
+              <>
+                <Moon className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">Fundo Azul</span>
+              </>
+            ) : (
+              <>
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">Fundo Branco</span>
+              </>
+            )}
+          </button>
+
+          {/* Personalizar Cores */}
+          <button
+            type="button"
+            onClick={() => setIsColorModalOpen(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isLight ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' : 'bg-[#041838] border-[#0A2854] text-slate-200 hover:bg-[#0067FC] hover:text-white'
+            }`}
+            title="Personalizar cores e layout (Alt + C)"
+          >
+            <div
+              className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-xs shrink-0"
+              style={{ backgroundColor: primaryColor }}
+            />
+            <Palette className="w-4 h-4 text-[#00A6FC]" />
+            <span className="hidden sm:inline">Cores</span>
+          </button>
+
           {/* Central de Acessibilidade */}
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white border border-[#0A2854] text-xs font-semibold transition-all cursor-pointer group"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              isLight ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' : 'bg-[#041838] hover:bg-[#0067FC] text-slate-200 hover:text-white border-[#0A2854]'
+            }`}
             title="Abrir Central de Acessibilidade (Alt + A)"
           >
-            <Accessibility className="w-4 h-4 text-[#00A6FC] group-hover:text-white transition-colors" />
+            <Accessibility className="w-4 h-4 text-[#00A6FC]" />
             <span className="hidden sm:inline">Acessibilidade</span>
           </button>
 
@@ -308,22 +373,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ currentUser, onNavigate }) =
           <button
             type="button"
             onClick={() => onNavigate('login')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#041838] hover:bg-slate-700 text-slate-300 hover:text-white border border-[#0A2854] text-xs font-semibold transition-all cursor-pointer group"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              isLight ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' : 'bg-[#041838] hover:bg-slate-700 text-slate-300 hover:text-white border-[#0A2854]'
+            }`}
             title="Ir para tela de Login / Autenticação com credenciais"
           >
-            <LogIn className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+            <LogIn className="w-3.5 h-3.5 text-slate-400" />
             <span className="hidden sm:inline">Trocar Conta</span>
           </button>
 
           {/* Perfil do Usuário Logado */}
-          <div className="flex items-center gap-2.5 p-1.5 rounded-xl bg-[#041838] border border-[#0A2854]">
+          <div className={`flex items-center gap-2.5 p-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#041838] border-[#0A2854]'}`}>
             <img
               src={currentUser.avatar}
               alt={currentUser.name}
               className="w-7 h-7 rounded-full object-cover ring-2 ring-[#0067FC]"
             />
             <div className="text-left hidden md:block pr-2">
-              <span className="text-xs font-bold text-white block leading-tight">{currentUser.name}</span>
+              <span className={`text-xs font-bold block leading-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>{currentUser.name}</span>
               <span className="text-[10px] font-mono text-[#00A6FC]">{currentUser.userRole || 'COLABORADOR'}</span>
             </div>
           </div>
@@ -426,10 +493,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ currentUser, onNavigate }) =
                 key={item.id}
                 type="button"
                 onClick={() => onNavigate(item.id)}
+                style={{ backgroundColor: cardColor }}
                 className={`text-left p-5 rounded-3xl border transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:scale-[1.02] shadow-xl ${
                   highContrast
                     ? 'bg-black border-yellow-400 hover:bg-yellow-400/10'
-                    : 'bg-[#01122D] border-[#0A2854] hover:border-[#0067FC] hover:shadow-2xl hover:shadow-[#0067FC]/20'
+                    : isCardLight
+                    ? 'border-slate-200 text-slate-800 hover:shadow-2xl'
+                    : 'border-[#0A2854] text-white hover:border-[#0067FC] hover:shadow-2xl hover:shadow-[#0067FC]/20'
                 }`}
               >
                 <div className="space-y-3">
@@ -456,22 +526,22 @@ export const HomeView: React.FC<HomeViewProps> = ({ currentUser, onNavigate }) =
                     <span className="text-[10px] font-mono text-[#00A6FC] uppercase tracking-wider block font-bold">
                       {item.category}
                     </span>
-                    <h3 className="text-base font-bold text-white group-hover:text-[#00A6FC] transition-colors mt-0.5">
+                    <h3 className={`text-base font-bold group-hover:text-[#00A6FC] transition-colors mt-0.5 ${isCardLight ? 'text-slate-900' : 'text-white'}`}>
                       {item.title}
                     </h3>
-                    <p className="text-[11px] text-slate-400 font-medium">
+                    <p className={`text-[11px] font-medium ${isCardLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       {item.subtitle}
                     </p>
                   </div>
 
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                  <p className={`text-xs line-clamp-2 leading-relaxed ${isCardLight ? 'text-slate-600' : 'text-slate-300'}`}>
                     {item.description}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-[#0A2854]/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-white transition-colors">
+                <div className={`pt-4 mt-4 border-t flex items-center justify-between text-xs transition-colors ${isCardLight ? 'border-slate-200 text-slate-500 group-hover:text-slate-900' : 'border-[#0A2854]/60 text-slate-400 group-hover:text-white'}`}>
                   <span className="font-semibold text-[11px]">Acessar Módulo</span>
-                  <div className="w-6 h-6 rounded-lg bg-[#041838] group-hover:bg-[#0067FC] flex items-center justify-center text-slate-300 group-hover:text-white transition-colors">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${isCardLight ? 'bg-slate-100 group-hover:bg-[#0067FC] text-slate-700 group-hover:text-white' : 'bg-[#041838] group-hover:bg-[#0067FC] text-slate-300 group-hover:text-white'}`}>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>

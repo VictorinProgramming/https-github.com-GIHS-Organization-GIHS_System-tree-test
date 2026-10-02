@@ -1455,6 +1455,29 @@ VALUES
   ('fd451ef8-95b7-45bf-9bbe-18b2d69c037b', 'user-master-victor-hugo', 'Victor Hugo Estevão', 'LOGIN_SUCCESS', 'AUTH', 'Info', '45.180.113.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0', '{"method":"POSTGRESQL_PBKDF2_TIMING_SAFE"}', '2026-09-30T11:54:33.772Z')
 ON CONFLICT DO NOTHING;
 
+-- =========================================================================
+-- DADOS DA TABELA: gihs_core.clients (Secretarias & Contratos Municipais)
+-- =========================================================================
+INSERT INTO gihs_core.clients (id, name, plan, sla, open_tickets, monthly_value, contact_name, contact_email, contact_phone, status)
+VALUES
+  ('cli-pmj-semed', 'Secretaria Municipal de Educação (SEMED)', 'Suporte Full + Infra & Redes', '99.8%', 3, 38500.00, 'Profª. Helena Souza', 'helena.souza@joinville.sc.gov.br', '(47) 3431-3000', 'Ativo'),
+  ('cli-pmj-sms', 'Secretaria Municipal de Saúde (SMS)', 'Cyber Security & DBA 24x7', '99.9%', 2, 54000.00, 'Dr. Roberto Silveira', 'regula.saude@joinville.sc.gov.br', '(47) 3431-4100', 'Ativo'),
+  ('cli-pmj-sefaz', 'Secretaria da Fazenda (SEFAZ)', 'DBA & Banco de Dados Crítico', '99.95%', 1, 42000.00, 'Dr. Renato Farias', 'arrecadacao@joinville.sc.gov.br', '(47) 3431-3150', 'Ativo'),
+  ('cli-pmj-patrim', 'Divisão Geral de Patrimônio & Almoxarifado (SAP)', 'Patrimônio & Gestão de Bens Públicos', '99.5%', 2, 29800.00, 'Carlos Mendes', 'patrimonio@joinville.sc.gov.br', '(47) 3431-3080', 'Ativo'),
+  ('cli-pmj-adm', 'Secretaria de Administração & Recursos Humanos', 'Administração & Protocolo Eletrônico', '99.0%', 1, 26500.00, 'Mariana Castilho', 'protocolo@joinville.sc.gov.br', '(47) 3431-3200', 'Ativo'),
+  ('cli-pmj-detrans', 'Departamento de Trânsito & Mobilidade (DETRANS)', 'Mobilidade Urbana & Frotas Conectadas', '98.9%', 0, 21000.00, 'Inspetor Vanderlei', 'transito@joinville.sc.gov.br', '(47) 3431-5000', 'Ativo')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  plan = EXCLUDED.plan,
+  sla = EXCLUDED.sla,
+  open_tickets = EXCLUDED.open_tickets,
+  monthly_value = EXCLUDED.monthly_value,
+  contact_name = EXCLUDED.contact_name,
+  contact_email = EXCLUDED.contact_email,
+  contact_phone = EXCLUDED.contact_phone,
+  status = EXCLUDED.status,
+  updated_at = CURRENT_TIMESTAMP;
+
 
 -- =========================================================================================
 -- PARTE 4: ATUALIZAÇÃO FINAL DE PERMISSÕES & BUSCA DO SCHEMA

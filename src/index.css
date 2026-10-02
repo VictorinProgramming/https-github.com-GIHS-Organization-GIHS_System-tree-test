@@ -2,20 +2,34 @@
 
 @layer base {
   :root {
+    --theme-primary: #0067FC;
+    --theme-primary-rgb: 0, 103, 252;
+    --theme-accent: #00A6FC;
+    --theme-accent-rgb: 0, 166, 252;
+    --theme-bg-main: #01122D;
+    --theme-bg-sidebar: #01122D;
+    --theme-bg-navbar: #01122D;
+    --theme-bg-card: #041838;
+    --theme-bg-contrast: #000B1D;
+    --theme-border: #0A2854;
+    --theme-text-main: #F8FAFC;
+    --theme-text-muted: #94A3B8;
+
     --gihs-navy-deep: #01122D;
     --gihs-navy-darker: #000B1D;
     --gihs-navy-card: #041838;
     --gihs-navy-border: #0A2854;
-    --gihs-blue-electric: #0067FC;
-    --gihs-blue-mid: #007BFC;
-    --gihs-blue-luminous: #00A6FC;
-    --gihs-blue-accent: #0196FC;
+    --gihs-blue-electric: var(--theme-primary);
+    --gihs-blue-mid: var(--theme-primary);
+    --gihs-blue-luminous: var(--theme-accent);
+    --gihs-blue-accent: var(--theme-primary);
   }
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: #01122D;
-    color: #F8FAFC;
+    background-color: var(--theme-bg-main, #01122D);
+    color: var(--theme-text-main, #F8FAFC);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   
   /* Garantir tipografia técnica mono para NSR, hashes, códigos de ticket e telemetria */
@@ -24,43 +38,304 @@
   }
 }
 
-/* Utilitários oficiais da identidade visual GIHS */
-.bg-gihs-navy {
-  background-color: #01122D;
+/* ====================================================================
+   SISTEMA DE PERSONALIZAÇÃO DE CORES DINÂMICO GIHS
+   Aplica em tempo real as cores escolhidas pelo usuário em toda a aplicação
+   ==================================================================== */
+
+/* Cores Primárias Dinâmicas (Botões, Ícones, Bordas, Destaques) */
+[class*="bg-[#0067FC]"]:not([id^="modal-"]):not([role="dialog"]):not([class*="bg-[#0067FC]/"]),
+button[class*="bg-[#0067FC]"],
+a[class*="bg-[#0067FC]"],
+span[class*="bg-[#0067FC]"]:not([class*="bg-[#0067FC]/"]),
+.bg-gihs-electric {
+  background-color: var(--theme-primary, #0067FC) !important;
 }
 
-.bg-gihs-card {
-  background-color: #041838;
-}
-
-.border-gihs {
-  border-color: #0A2854;
-}
-
+[class*="text-[#0067FC]"],
 .text-gihs-electric {
-  color: #0067FC;
+  color: var(--theme-primary, #0067FC) !important;
 }
 
+[class*="border-[#0067FC]"]:not([class*="border-[#0067FC]/"]) {
+  border-color: var(--theme-primary, #0067FC) !important;
+}
+
+[class*="ring-[#0067FC]"] {
+  --tw-ring-color: var(--theme-primary, #0067FC) !important;
+}
+
+/* Cores de Destaque / Acentos Luminosos */
+[class*="text-[#00A6FC]"],
 .text-gihs-luminous {
-  color: #00A6FC;
+  color: var(--theme-accent, #00A6FC) !important;
 }
 
+[class*="border-[#00A6FC]"]:not([class*="border-[#00A6FC]/"]) {
+  border-color: var(--theme-accent, #00A6FC) !important;
+}
+
+[class*="bg-[#00A6FC]"]:not([class*="bg-[#00A6FC]/"]) {
+  background-color: var(--theme-accent, #00A6FC) !important;
+}
+
+/* Gradientes Oficiais com as Cores Selecionadas */
 .bg-gihs-gradient {
-  background: linear-gradient(135deg, #0067FC 0%, #007BFC 50%, #00A6FC 100%);
+  background: linear-gradient(135deg, var(--theme-primary, #0067FC) 0%, var(--theme-accent, #00A6FC) 100%) !important;
 }
 
 .bg-gihs-gradient-subtle {
-  background: linear-gradient(135deg, rgba(0, 103, 252, 0.15) 0%, rgba(0, 166, 252, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(var(--theme-primary-rgb, 0, 103, 252), 0.15) 0%, rgba(var(--theme-accent-rgb, 0, 166, 252), 0.08) 100%) !important;
 }
 
 .border-gihs-glow {
-  border-color: rgba(0, 166, 252, 0.4);
-  box-shadow: 0 0 15px rgba(0, 103, 252, 0.2);
+  border-color: rgba(var(--theme-accent-rgb, 0, 166, 252), 0.4) !important;
+  box-shadow: 0 0 15px rgba(var(--theme-primary-rgb, 0, 103, 252), 0.2) !important;
 }
 
 /* ====================================================================
-   GIHS Acessibilidade Universal (WCAG 2.2 AAA & LBI - Lei Brasileira de Inclusão)
-   Pessoas Cegas, Surdas, Cadeirantes e Baixa Visão
+   SIDEBAR PERSONALIZADA DINÂMICA
+   ==================================================================== */
+#app-sidebar-panel {
+  background-color: var(--theme-bg-sidebar, #01122D) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+#sidebar-nav-container {
+  background-color: var(--theme-bg-sidebar, #01122D) !important;
+}
+
+/* Sidebar no Modo Claro */
+.sidebar-light #app-sidebar-panel,
+html.sidebar-light #app-sidebar-panel {
+  border-right-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.sidebar-light #app-sidebar-panel [class*="bg-[#000B1D]"],
+.sidebar-light #app-sidebar-panel #sidebar-user-footer {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.sidebar-light #app-sidebar-panel p.text-slate-400,
+.sidebar-light #app-sidebar-panel span.text-slate-400 {
+  color: #64748B !important;
+}
+
+.sidebar-light #app-sidebar-panel p.text-white,
+.sidebar-light #app-sidebar-panel span.text-white {
+  color: #0F172A !important;
+}
+
+.sidebar-light #app-sidebar-panel button:not([style*="background"]):hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: var(--theme-primary, #0067FC) !important;
+}
+
+/* Sidebar no Modo Escuro */
+.sidebar-dark #app-sidebar-panel,
+html.sidebar-dark #app-sidebar-panel {
+  border-right-color: #0A2854 !important;
+  color: #F8FAFC !important;
+}
+
+.sidebar-dark #app-sidebar-panel [class*="bg-[#000B1D]"],
+.sidebar-dark #app-sidebar-panel #sidebar-user-footer {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  border-color: #0A2854 !important;
+  color: #F8FAFC !important;
+}
+
+.sidebar-dark #app-sidebar-panel button:not([style*="background"]):hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+}
+
+/* ====================================================================
+   TOP BAR (NAVBAR / CABEÇALHO) PERSONALIZADO
+   ==================================================================== */
+#app-top-navbar,
+header {
+  background-color: var(--theme-bg-navbar, #01122D) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Top Bar Clara */
+.navbar-light #app-top-navbar,
+.navbar-light header,
+html.navbar-light header,
+body.navbar-light header {
+  border-bottom-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.navbar-light header h1,
+.navbar-light header h2,
+.navbar-light header h3,
+.navbar-light header .text-white,
+body.navbar-light header .text-white {
+  color: #0F172A !important;
+}
+
+.navbar-light header .text-slate-400,
+body.navbar-light header .text-slate-400 {
+  color: #64748B !important;
+}
+
+.navbar-light header [class*="bg-[#041838]"],
+.navbar-light header [class*="bg-[#01122D]"],
+.navbar-light header #navbar-datetime-widget,
+body.navbar-light header #navbar-datetime-widget {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-color: #E2E8F0 !important;
+  color: #334155 !important;
+}
+
+/* Top Bar Escura */
+.navbar-dark #app-top-navbar,
+.navbar-dark header,
+html.navbar-dark header,
+body.navbar-dark header {
+  border-bottom-color: #0A2854 !important;
+  color: #F8FAFC !important;
+}
+
+/* ====================================================================
+   FUNDO DA TELA (BACKGROUND) PERSONALIZADO
+   ==================================================================== */
+main {
+  background-color: var(--theme-bg-main, #01122D) !important;
+  transition: background-color 0.2s ease;
+}
+
+/* --- REGRAS QUANDO O FUNDO É CLARO --- */
+html.theme-light body,
+body.theme-light {
+  background-color: var(--theme-bg-main, #FFFFFF) !important;
+  color: #0F172A !important;
+}
+
+body.theme-light main {
+  background-color: var(--theme-bg-main, #FFFFFF) !important;
+}
+
+/* Inputs, Selects e Textareas no Fundo Claro */
+body.theme-light main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([id^="modal-"]),
+body.theme-light main select:not([id^="modal-"]),
+body.theme-light main textarea:not([id^="modal-"]) {
+  background-color: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+/* Preservação das cores nos botões principais */
+body.theme-light button[class*="bg-[#0067FC]"],
+body.theme-light button[class*="bg-cyan-600"],
+body.theme-light .btn-theme-primary {
+  background-color: var(--theme-primary, #0067FC) !important;
+  color: #FFFFFF !important;
+}
+
+/* --- REGRAS QUANDO O FUNDO É ESCURO --- */
+html.theme-dark body,
+body.theme-dark {
+  background-color: var(--theme-bg-main, #01122D) !important;
+  color: #F8FAFC !important;
+}
+
+body.theme-dark main {
+  background-color: var(--theme-bg-main, #01122D) !important;
+}
+
+/* ====================================================================
+   SUB-TELAS, CARTÕES E PAINÉIS PERSONALIZADOS
+   ==================================================================== */
+main [class*="bg-[#041838]"]:not([id^="modal-"]):not(button[class*="bg-[#0067FC]"]),
+main [class*="bg-[#01122D]"]:not([id^="modal-"]):not(input):not(header):not(aside):not(button[class*="bg-[#0067FC]"]),
+main [class*="bg-slate-900"]:not([id^="modal-"]):not(input):not(button[class*="bg-[#0067FC]"]),
+main .bg-gihs-card {
+  background-color: var(--theme-bg-card, #041838) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Quando as sub-telas são claras */
+.cards-light main [class*="bg-[#041838]"]:not([id^="modal-"]),
+.cards-light main [class*="bg-[#01122D]"]:not([id^="modal-"]):not(input):not(header),
+.cards-light main [class*="bg-slate-900"]:not([id^="modal-"]):not(input),
+.cards-light main .bg-gihs-card,
+html.cards-light main [class*="bg-[#041838]"]:not([id^="modal-"]),
+body.cards-light main [class*="bg-[#041838]"]:not([id^="modal-"]),
+html.cards-light main [class*="bg-[#01122D]"]:not([id^="modal-"]):not(input):not(header),
+body.cards-light main [class*="bg-[#01122D]"]:not([id^="modal-"]):not(input):not(header) {
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+.cards-light main h1,
+.cards-light main h2,
+.cards-light main h3,
+.cards-light main h4,
+html.cards-light main h1,
+html.cards-light main h2,
+html.cards-light main h3,
+html.cards-light main h4,
+body.cards-light main h1,
+body.cards-light main h2,
+body.cards-light main h3,
+body.cards-light main h4 {
+  color: #0F172A !important;
+}
+
+.cards-light main p.text-slate-400,
+.cards-light main span.text-slate-400,
+html.cards-light main p.text-slate-400,
+html.cards-light main span.text-slate-400,
+body.cards-light main p.text-slate-400,
+body.cards-light main span.text-slate-400 {
+  color: #64748B !important;
+}
+
+.cards-light main p.text-slate-300,
+.cards-light main span.text-slate-300,
+html.cards-light main p.text-slate-300,
+html.cards-light main span.text-slate-300,
+body.cards-light main p.text-slate-300,
+body.cards-light main span.text-slate-300 {
+  color: #475569 !important;
+}
+
+.cards-light main p.text-white,
+.cards-light main span.text-white,
+html.cards-light main p.text-white,
+html.cards-light main span.text-white,
+body.cards-light main p.text-white,
+body.cards-light main span.text-white {
+  color: #0F172A !important;
+}
+
+/* Quando as sub-telas são escuras */
+.cards-dark main [class*="bg-[#041838]"]:not([id^="modal-"]),
+.cards-dark main [class*="bg-[#01122D]"]:not([id^="modal-"]):not(input):not(header),
+html.cards-dark main [class*="bg-[#041838]"]:not([id^="modal-"]),
+body.cards-dark main [class*="bg-[#041838]"]:not([id^="modal-"]) {
+  border-color: #0A2854 !important;
+  color: #F8FAFC !important;
+}
+
+/* ====================================================================
+   ISOLAMENTO DE MODAIS (PRESERVAÇÃO DO VISUAL CORPORATIVO)
+   ==================================================================== */
+#modal-customizacao-cores {
+  background-color: #041838 !important;
+  border-color: #0A2854 !important;
+  color: #F8FAFC !important;
+}
+
+/* ====================================================================
+   GIHS Acessibilidade Universal (WCAG 2.2 AAA & LBI)
    ==================================================================== */
 
 /* 1. MODO ALTO CONTRASTE (WCAG AAA) */
@@ -115,13 +390,6 @@ body.a11y-high-contrast .text-slate-300 {
   color: #E2E8F0 !important;
 }
 
-body.a11y-high-contrast [class*="text-\\[\\#0067FC\\]"],
-body.a11y-high-contrast [class*="text-\\[\\#00A6FC\\]"],
-body.a11y-high-contrast .text-gihs-electric,
-body.a11y-high-contrast .text-gihs-luminous {
-  color: #FFFF00 !important;
-}
-
 /* 2. ESCALAS DE FONTE (WCAG 1.4.4) */
 html.a11y-font-large {
   font-size: 115% !important;
@@ -131,7 +399,7 @@ html.a11y-font-xlarge {
   font-size: 130% !important;
 }
 
-/* 3. ALVOS DE TOQUE GRANDES (Cadeirantes & Controle Motor / Tremores) */
+/* 3. ALVOS DE TOQUE GRANDES (Cadeirantes & Controle Motor) */
 body.a11y-large-targets button,
 body.a11y-large-targets a,
 body.a11y-large-targets input,

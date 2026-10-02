@@ -43,6 +43,7 @@ import { apiBackendService } from '../../services/apiBackendService';
 import { detectDeviceCategory, DeviceCategory } from '../../utils/geolocationAndDevice';
 import { evaluatePassword } from '../../utils/passwordPolicy';
 import { GIHSLogo } from '../GIHSLogo';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useSystemLogo } from '../../hooks/useSystemLogo';
 
 interface SettingsViewProps {
@@ -58,6 +59,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // System Logo & Branding from PostgreSQL
   const { logoData, isLoading: isLogoLoading, updateLogoInPostgres, resetLogoInPostgres } = useSystemLogo();
+  const { 
+    themeMode, 
+    setThemeMode, 
+    isDark, 
+    primaryColor, 
+    backgroundColor, 
+    sidebarColor, 
+    navbarColor,
+    cardColor,
+    setIsColorModalOpen 
+  } = useTheme();
   const [customTagline, setCustomTagline] = useState(logoData.tagline || 'Enterprise System . 100% Monitorado');
   const [customTaglineColor, setCustomTaglineColor] = useState(logoData.tagline_color || '#00A6FC');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(logoData.logo_url || null);
@@ -2147,6 +2159,101 @@ psql -h localhost -p 5432 -U postgres -d postgres -f gihs_supabase_complete_data
                     {logoPreviewUrl ? 'Imagem Personalizada Carregada' : 'Logotipo Vetorial Oficial Ativo'}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Painel Oficial de Personalização de Cores & Modo Claro/Escuro do Usuário */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-900/10 via-slate-900/5 to-slate-900/10 border border-blue-500/20 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: primaryColor }}>
+                    <Palette className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 tracking-tight">
+                      Personalização de Cores, Fundo & Sidebar
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Personalize a cor da Sidebar, a cor do Fundo da tela e a paleta de cores dos botões e controles.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsColorModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-[#0067FC] hover:bg-[#0052cc] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer shrink-0"
+                >
+                  <Palette className="w-4 h-4" />
+                  <span>Personalizar Top Bar, Sidebar, Fundo & Sub-telas</span>
+                </button>
+              </div>
+
+              {/* Status pills for active colors */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+                  <span className="text-slate-500 font-medium">Top Bar:</span>
+                  <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: navbarColor }} />
+                  <strong className="font-mono text-slate-800">{navbarColor}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+                  <span className="text-slate-500 font-medium">Sidebar:</span>
+                  <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: sidebarColor }} />
+                  <strong className="font-mono text-slate-800">{sidebarColor}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+                  <span className="text-slate-500 font-medium">Fundo:</span>
+                  <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor }} />
+                  <strong className="font-mono text-slate-800">{backgroundColor}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+                  <span className="text-slate-500 font-medium">Sub-telas:</span>
+                  <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: cardColor }} />
+                  <strong className="font-mono text-slate-800">{cardColor}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+                  <span className="text-slate-500 font-medium">Primária:</span>
+                  <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: primaryColor }} />
+                  <strong className="font-mono text-slate-800">{primaryColor}</strong>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setThemeMode('dark')}
+                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                    themeMode === 'dark'
+                      ? 'border-[#0067FC] ring-2 ring-blue-500/30 bg-[#01122D] text-white shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div>
+                    <span className="text-xs font-bold block">Modo Escuro (Fundo Azul)</span>
+                    <span className="text-[11px] opacity-75">Fundo Azul Municipal (#01122D) com sidebar azul corporativa</span>
+                  </div>
+                  {themeMode === 'dark' && <Check className="w-4 h-4 text-cyan-400 stroke-[3]" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setThemeMode('light')}
+                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                    themeMode === 'light'
+                      ? 'border-[#0067FC] ring-2 ring-blue-500/30 bg-slate-100 text-slate-900 shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div>
+                    <span className="text-xs font-bold block">Modo Claro (Fundo Branco)</span>
+                    <span className="text-[11px] opacity-75">Fundo Branco (#FFFFFF) com layout limpo de alto contraste</span>
+                  </div>
+                  {themeMode === 'light' && <Check className="w-4 h-4 text-[#0067FC] stroke-[3]" />}
+                </button>
               </div>
             </div>
 

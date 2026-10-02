@@ -37,6 +37,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { AccessibilityModal } from './components/accessibility/AccessibilityModal';
 import { VisualNotificationBanner } from './components/accessibility/VisualNotificationBanner';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ThemeColorCustomizerModal } from './components/common/ThemeColorCustomizerModal';
 
 // Utilizador padrão vazio até que o Login na base de dados PostgreSQL seja efetuado
 const DEFAULT_USER: Collaborator = {
@@ -77,7 +79,8 @@ const SCREEN_A11Y_SUMMARIES: Record<ViewScreen, { title: string; summary: string
   mobilidade: { title: 'Mobilidade Corporativa & Frotas', summary: 'Rastreamento de veículos, rotas com GPS físico real e gestão de deslocamentos.' }
 };
 
-export default function App() {
+function AppContent() {
+  const { bgMainClass, isLight, backgroundColor, setCurrentUserId, setIsColorModalOpen } = useTheme();
   const [currentScreen, setCurrentScreen] = useState<ViewScreen>('login');
   const [currentUser, setCurrentUser] = useState<Collaborator>(CURRENT_USER);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -86,6 +89,24 @@ export default function App() {
   const [isSimulatorModalOpen, setIsSimulatorModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isPitchCollapsed, setIsPitchCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      setCurrentUserId(currentUser.id);
+    }
+  }, [currentUser?.id]);
+
+  // Keyboard shortcut: Alt+C opens Theme customizer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        setIsColorModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setIsColorModalOpen]);
 
   // Alterado: Agora muda apenas a permissão em memória para testar os ecrãs,
   // mantendo os dados originais do utilizador autenticado via PostgreSQL.
@@ -336,99 +357,116 @@ export default function App() {
   };
 
   return (
-    <AccessibilityProvider>
-      <div className="min-h-screen bg-[#01122D] text-slate-100 flex flex-col font-sans selection:bg-[#0067FC]/40 selection:text-white antialiased">
-        {currentScreen === 'login' || currentScreen === 'home' ? (
-          renderActiveScreen()
-        ) : (
-          // Standard Corporate Master Layout for Screens 2 to 22
-          <div className="flex h-screen overflow-hidden relative">
-            {/* Main Sidebar (Desktop persistent + Mobile slide-over drawer) */}
-            <Sidebar
+    <div 
+      style={{ backgroundColor }}
+      className={`min-h-screen ${isLight ? 'text-slate-900' : 'text-slate-100'} flex flex-col font-sans selection:bg-[#0067FC]/40 selection:text-white antialiased transition-colors duration-200`}
+    >
+      {currentScreen === 'login' || currentScreen === 'home' ? (
+        renderActiveScreen()
+      ) : (
+        // Standard Corporate Master Layout for Screens 2 to 22
+        <div className="flex h-screen overflow-hidden relative">
+          {/* Main Sidebar (Desktop persistent + Mobile slide-over drawer) */}
+          <Sidebar
+            currentScreen={currentScreen}
+            onSelectScreen={setCurrentScreen}
+            onLogout={() => setCurrentScreen('login')}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onOpenNavModal={() => setIsNavModalOpen(true)}
+            onOpenGuideModal={() => setIsGuideModalOpen(true)}
+            onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+            currentUser={currentUser}
+            isOpenOnMobile={isMobileMenuOpen}
+            onCloseMobile={() => setIsMobileMenuOpen(false)}
+          />
+
+          {/* Main Content Column */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+            {/* Top Corporate Navbar */}
+            <Navbar
               currentScreen={currentScreen}
               onSelectScreen={setCurrentScreen}
-              onLogout={() => setCurrentScreen('login')}
-              isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              onOpenNavModal={() => setIsNavModalOpen(true)}
-              onOpenGuideModal={() => setIsGuideModalOpen(true)}
-              onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+              onOpenQuickJump={() => setIsNavModalOpen(true)}
+              onOpenGuide={() => setIsGuideModalOpen(true)}
               currentUser={currentUser}
-              isOpenOnMobile={isMobileMenuOpen}
-              onCloseMobile={() => setIsMobileMenuOpen(false)}
+              onSwitchUserRole={handleSwitchRole}
+              onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
+              onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
             />
 
-            {/* Main Content Column */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-              {/* Top Corporate Navbar */}
-              <Navbar
-                currentScreen={currentScreen}
-                onSelectScreen={setCurrentScreen}
-                onOpenQuickJump={() => setIsNavModalOpen(true)}
-                onOpenGuide={() => setIsGuideModalOpen(true)}
-                currentUser={currentUser}
-                onSwitchUserRole={handleSwitchRole}
-                onOpenSimulatorModal={() => setIsSimulatorModalOpen(true)}
-                onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
-              />
+            {/* Scrollable Work Area */}
+            <main 
+              style={{ backgroundColor }}
+              className={`flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-20 lg:pb-8 overflow-x-hidden transition-colors duration-200`}
+            >
+              <div className="max-w-7xl mx-auto">
+                <ErrorBoundary fallbackTitle="Ocorreu um erro ao carregar este ecrã">
+                  {renderActiveScreen()}
+                </ErrorBoundary>
+              </div>
+            </main>
 
-              {/* Scrollable Work Area */}
-              <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-20 lg:pb-8 bg-[#01122D] overflow-x-hidden">
-                <div className="max-w-7xl mx-auto">
-                  <ErrorBoundary fallbackTitle="Ocorreu um erro ao carregar este ecrã">
-                    {renderActiveScreen()}
-                  </ErrorBoundary>
-                </div>
-              </main>
-
-              {/* Mobile Bottom Navigation Bar */}
-              <MobileBottomNav
-                currentScreen={currentScreen}
-                onSelectScreen={setCurrentScreen}
-                onOpenMenu={() => setIsMobileMenuOpen(true)}
-              />
-            </div>
+            {/* Mobile Bottom Navigation Bar */}
+            <MobileBottomNav
+              currentScreen={currentScreen}
+              onSelectScreen={setCurrentScreen}
+              onOpenMenu={() => setIsMobileMenuOpen(true)}
+            />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Screen Quick-Jump Modal */}
-        <PresentationNavigatorModal
-          isOpen={isNavModalOpen}
-          onClose={() => setIsNavModalOpen(false)}
-          currentScreen={currentScreen}
-          onSelectScreen={setCurrentScreen}
-        />
+      {/* Screen Quick-Jump Modal */}
+      <PresentationNavigatorModal
+        isOpen={isNavModalOpen}
+        onClose={() => setIsNavModalOpen(false)}
+        currentScreen={currentScreen}
+        onSelectScreen={setCurrentScreen}
+      />
 
-        {/* Presentation Speaker Narrative Guide Modal */}
-        <PresentationGuideModal
-          isOpen={isGuideModalOpen}
-          onClose={() => setIsGuideModalOpen(false)}
-          currentScreen={currentScreen}
-          onSelectScreen={setCurrentScreen}
-        />
+      {/* Presentation Speaker Narrative Guide Modal */}
+      <PresentationGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        currentScreen={currentScreen}
+        onSelectScreen={setCurrentScreen}
+      />
 
-        {/* Role & Permissions Simulator Modal with Credentials & Screen Matrix */}
-        <RoleSimulatorModal
-          isOpen={isSimulatorModalOpen}
-          onClose={() => setIsSimulatorModalOpen(false)}
-          currentUser={currentUser}
-          onSelectUser={handleSelectCollaborator}
-          onNavigateToScreen={(screen) => {
-            setCurrentScreen(screen);
-            setIsSimulatorModalOpen(false);
-          }}
-        />
+      {/* Role & Permissions Simulator Modal with Credentials & Screen Matrix */}
+      <RoleSimulatorModal
+        isOpen={isSimulatorModalOpen}
+        onClose={() => setIsSimulatorModalOpen(false)}
+        currentUser={currentUser}
+        onSelectUser={handleSelectCollaborator}
+        onNavigateToScreen={(screen) => {
+          setCurrentScreen(screen);
+          setIsSimulatorModalOpen(false);
+        }}
+      />
 
-        {/* Pop-up de aviso de chamado criado */}
-        <TicketNotificationPopup onNavigate={setCurrentScreen} currentUser={currentUser} />
+      {/* Pop-up de aviso de chamado criado */}
+      <TicketNotificationPopup onNavigate={setCurrentScreen} currentUser={currentUser} />
 
-        {/* ====================================================================
-            SUÍTE CORPORATIVA DE ACESSIBILIDADE UNIVERSAL (WCAG 2.2 AAA & LBI)
-            Pessoas Cegas, Surdas, Cadeirantes e Mobilidade Reduzida
-            ==================================================================== */}
-        <AccessibilityModal />
-        <VisualNotificationBanner />
-      </div>
-    </AccessibilityProvider>
+      {/* Modal de Personalização de Cores e Modo Claro/Escuro do Usuário */}
+      <ThemeColorCustomizerModal />
+
+      {/* ====================================================================
+          SUÍTE CORPORATIVA DE ACESSIBILIDADE UNIVERSAL (WCAG 2.2 AAA & LBI)
+          Pessoas Cegas, Surdas, Cadeirantes e Mobilidade Reduzida
+          ==================================================================== */}
+      <AccessibilityModal />
+      <VisualNotificationBanner />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AccessibilityProvider>
+        <AppContent />
+      </AccessibilityProvider>
+    </ThemeProvider>
   );
 }

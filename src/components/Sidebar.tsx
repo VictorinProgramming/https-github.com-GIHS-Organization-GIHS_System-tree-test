@@ -22,6 +22,7 @@ import {
   Accessibility
 } from 'lucide-react';
 import { useAccessibility } from '../contexts/AccessibilityContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { ViewScreen, Collaborator } from '../types';
 import { CURRENT_USER } from '../data/mockData';
 import { checkScreenAccess } from '../data/authCredentials';
@@ -66,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile
 }) => {
   const { setIsModalOpen } = useAccessibility();
+  const { primaryColor, accentColor, sidebarColor, isSidebarLight } = useTheme();
   const handleSelect = (screen: ViewScreen) => {
     onSelectScreen(screen);
     onCloseMobile?.();
@@ -132,14 +134,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         id="app-sidebar-panel"
+        style={{ backgroundColor: sidebarColor }}
         className={`
-          fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#01122D] border-r border-[#0A2854] flex flex-col h-screen shrink-0 select-none transition-transform duration-300 ease-in-out shadow-2xl
+          fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] ${isSidebarLight ? 'border-slate-200 text-slate-800' : 'border-[#0A2854] text-slate-100'} border-r flex flex-col h-screen shrink-0 select-none transition-all duration-200 ease-in-out shadow-2xl
           ${isOpenOnMobile ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0 lg:static lg:w-68 lg:z-auto lg:shadow-none
         `}
       >
         {/* Brand Header com Logomarca Oficial GIHS */}
-        <div className="p-4 border-b border-[#0A2854] flex items-center justify-between bg-[#000B1D]/60">
+        <div 
+          style={{ backgroundColor: isSidebarLight ? 'rgba(0,0,0,0.03)' : 'rgba(0,0,0,0.3)' }}
+          className={`p-4 border-b ${isSidebarLight ? 'border-slate-200' : 'border-[#0A2854]'} flex items-center justify-between transition-colors`}
+        >
           <div
             onClick={() => handleSelect('home')}
             className="flex items-center gap-2 cursor-pointer group w-full"
@@ -154,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Close button on mobile phones & tablets */}
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-2 rounded-xl bg-[#041838] hover:bg-[#0067FC] text-slate-300 hover:text-white transition-colors cursor-pointer border border-[#0A2854]"
+            className={`lg:hidden p-2 rounded-xl ${isSidebarLight ? 'bg-slate-100 text-slate-600' : 'bg-[#041838] text-slate-300'} hover:bg-[#0067FC] hover:text-white transition-colors cursor-pointer border ${isSidebarLight ? 'border-slate-200' : 'border-[#0A2854]'}`}
             title="Fechar menu lateral"
             aria-label="Fechar menu lateral"
           >
@@ -163,10 +169,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Nav Menu Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-5 text-sm bg-[#01122D]" id="sidebar-nav-container">
+        <nav 
+          style={{ backgroundColor: sidebarColor }}
+          className={`flex-1 overflow-y-auto px-3 py-3 space-y-5 text-sm ${isSidebarLight ? 'text-slate-800' : 'text-slate-100'}`} 
+          id="sidebar-nav-container"
+        >
           {navSections.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
-              <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#00A6FC]/80">
+              <p
+                className="px-3 text-[10px] font-extrabold uppercase tracking-wider"
+                style={{ color: accentColor }}
+              >
                 {section.title}
               </p>
               <div className="space-y-0.5">
@@ -180,12 +193,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       key={item.id}
                       id={`nav-item-${item.id}`}
                       onClick={() => handleSelect(item.id)}
+                      style={isActive ? { background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)` } : undefined}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-all cursor-pointer group ${
                         isActive
-                          ? 'bg-gradient-to-r from-[#0067FC] to-[#00A6FC] text-white font-bold shadow-md shadow-[#0067FC]/25'
+                          ? 'text-white font-bold shadow-md'
                           : allowed
-                            ? 'text-slate-300 font-medium hover:bg-[#041838] hover:text-[#00A6FC]'
-                            : 'text-slate-500 font-medium hover:bg-[#041838]/60 hover:text-slate-300'
+                            ? isSidebarLight
+                              ? 'text-slate-600 font-medium hover:bg-black/5 hover:text-slate-900'
+                              : 'text-slate-300 font-medium hover:bg-white/10 hover:text-white'
+                            : isSidebarLight
+                              ? 'text-slate-400 font-medium hover:bg-black/5'
+                              : 'text-slate-500 font-medium hover:bg-white/5 hover:text-slate-300'
                       }`}
                     >
                       <span className="flex items-center gap-2.5 truncate">
@@ -252,7 +270,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Logged User Bar */}
         <div
-          className="p-3 border-t border-[#0A2854] bg-[#000B1D]/80 flex items-center justify-between gap-2"
+          style={{ backgroundColor: isSidebarLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.3)' }}
+          className={`p-3 border-t ${isSidebarLight ? 'border-slate-200 text-slate-800' : 'border-[#0A2854] text-white'} flex items-center justify-between gap-2`}
           id="sidebar-user-footer"
         >
           <div
