@@ -1,5 +1,5 @@
-import { query } from '../db.js';
-import { SupportTicket, Priority } from '../../src/types.js';
+import { query } from '../db.ts';
+import type { SupportTicket, Priority } from '../../src/types.ts';
 
 export interface TicketRow {
   id: string;

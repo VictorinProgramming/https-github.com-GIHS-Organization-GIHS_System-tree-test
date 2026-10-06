@@ -50,7 +50,8 @@ const SCREEN_TITLES: Record<ViewScreen, { title: string; subtitle: string; categ
   mobilidade: { title: 'Mobilidade Corporativa', subtitle: 'Celulares de plantão, custódia e rotas GPS', category: 'Governança' },
   relatorios: { title: 'Central de Relatórios', subtitle: 'Indicadores de produtividade, ponto e SLAs', category: 'Governança' },
   auditoria: { title: 'Auditoria do Sistema', subtitle: 'Trilhas forenses, logs e conformidade LGPD', category: 'Governança' },
-  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos e banco de dados', category: 'Governança' }
+  configuracoes: { title: 'Configurações do Sistema', subtitle: 'Parâmetros corporativos e banco de dados', category: 'Governança' },
+  inventario_ti: { title: 'Inventário de TI & Agentes Windows', subtitle: 'Telemetria em tempo real de hardware, software e segurança via C# .NET 8', category: 'Patrimônio & TI' }
 };
 
 export const Navbar: React.FC<NavbarProps> = ({

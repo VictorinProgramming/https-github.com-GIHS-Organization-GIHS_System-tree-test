@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { usersRepository } from '../repositories/usersRepository.js';
-import { query } from '../db.js';
+import type { Request, Response } from 'express';
+import { usersRepository } from '../repositories/usersRepository.ts';
+import { query } from '../db.ts';
 import {
   hashPassword,
   verifyPassword,
@@ -9,7 +9,7 @@ import {
   resetLoginAttempts,
   recordSecurityAudit,
   sanitizeUser
-} from '../security.js';
+} from '../security.ts';
 
 export interface MasterSeedUser {
   id: string;

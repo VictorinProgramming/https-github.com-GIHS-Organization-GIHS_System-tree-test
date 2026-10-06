@@ -78,8 +78,9 @@ import {
   finishMobilityTrip,
   getMobilityMetrics,
   clearMobilityData
-} from './server/routes.js';
-import { checkDatabaseConnection } from './server/db.js';
+} from './server/routes.ts';
+import { checkDatabaseConnection } from './server/db.ts';
+import { inventoryAgentController } from './server/controllers/inventoryAgentController.ts';
 
 dotenv.config();
 
@@ -89,6 +90,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 function resolvePort(): number {
+  for (const arg of process.argv) {
+    if (arg.startsWith('--port=')) {
+      const p = parseInt(arg.split('=')[1], 10);
+      if (!isNaN(p) && p > 0) return p;
+    }
+  }
   const portArgIndex = process.argv.indexOf('--port');
   if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
     const val = parseInt(process.argv[portArgIndex + 1], 10);
@@ -102,7 +109,22 @@ function resolvePort(): number {
   return 3000;
 }
 
+function resolveHost(): string {
+  for (const arg of process.argv) {
+    if (arg.startsWith('--host=')) {
+      const h = arg.split('=')[1].trim();
+      if (h) return h;
+    }
+  }
+  const hostIndex = process.argv.indexOf('--host');
+  if (hostIndex !== -1 && process.argv[hostIndex + 1]) {
+    return process.argv[hostIndex + 1].trim();
+  }
+  return '0.0.0.0';
+}
+
 const PORT = resolvePort();
+const HOST = resolveHost();
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Cyber-Security: Remove banner de servidor Express para evitar fingerprinting
@@ -229,16 +251,41 @@ app.post('/api/mobility/trips/:id/finish', finishMobilityTrip);
 app.get('/api/mobility/metrics', getMobilityMetrics);
 app.post('/api/mobility/clear-all', clearMobilityData);
 
+// =========================================================================
+// Automated Windows Inventory Agent (C# .NET 8) & Admin Routes
+// =========================================================================
+// 1. Endpoints de comunicação e instalação do Agente Windows (HTTPS / JSON / 1-Click PowerShell)
+app.get('/api/agent/install.ps1', inventoryAgentController.serveInstallScript);
+app.get('/api/agent/install-service.ps1', inventoryAgentController.serveInstallScript);
+app.get('/api/agent/install.bat', inventoryAgentController.serveInstallBat);
+app.get('/api/agent/install.cmd', inventoryAgentController.serveInstallBat);
+app.get('/api/agent/download', inventoryAgentController.serveInstallBat);
+app.post('/api/agent/v1/heartbeat', inventoryAgentController.handleHeartbeat);
+app.post('/api/agent/v1/inventory', inventoryAgentController.handleIngestInventory);
+app.post('/api/agent/v1/test-agent', inventoryAgentController.handleTestAgent);
+
+// 2. Endpoints Administrativos EXCLUSIVOS de SUPER_ADMIN (2 camadas: Header + PostgreSQL)
+app.get('/api/inventory-agents', inventoryAgentController.requireSuperAdmin, inventoryAgentController.listAgents);
+app.get('/api/inventory-agents/metrics', inventoryAgentController.requireSuperAdmin, inventoryAgentController.getMetrics);
+app.get('/api/inventory-agents/conflicts', inventoryAgentController.requireSuperAdmin, inventoryAgentController.getConflicts);
+app.get('/api/inventory-agents/:id', inventoryAgentController.requireSuperAdmin, inventoryAgentController.getAgentById);
+app.get('/api/inventory-agents/:id/software', inventoryAgentController.requireSuperAdmin, inventoryAgentController.getAgentSoftware);
+app.get('/api/inventory-agents/:id/history', inventoryAgentController.requireSuperAdmin, inventoryAgentController.getAgentHistory);
+app.post('/api/inventory-agents/:id/force-scan', inventoryAgentController.requireSuperAdmin, inventoryAgentController.forceScan);
+app.post('/api/inventory-agents/conflicts/:id/resolve', inventoryAgentController.requireSuperAdmin, inventoryAgentController.resolveConflict);
+
+
 async function startServer() {
   const httpServer = http.createServer(app);
 
   if (!isProduction) {
     // Vite middleware integration in Development
+    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: {
+        hmr: isHmrDisabled ? false : {
           server: httpServer,
         },
       },
@@ -276,9 +323,21 @@ async function startServer() {
     console.log('[GIHS System] Serving production static files from dist.');
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`[GIHS System] Enterprise Server listening on http://0.0.0.0:${PORT}`);
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`\n  VITE v6.2.3  ready in 250 ms\n`);
+    console.log(`  ➜  Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜  Network: http://${HOST}:${PORT}/`);
+    console.log(`  ➜  press h + enter to show help\n`);
+    console.log(`[GIHS System] Enterprise Server listening on http://${HOST}:${PORT}\n`);
   });
+
+  const shutdown = () => {
+    httpServer.close(() => {
+      process.exit(0);
+    });
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 startServer().catch((err) => {

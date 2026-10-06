@@ -28,6 +28,7 @@ import { OrganogramaView } from './components/views/OrganogramaView';
 import { SettingsView } from './components/views/SettingsView';
 import { OnCallView } from './components/views/OnCallView';
 import { MobilityView } from './components/views/MobilityView';
+import { InventoryAgentAdminView } from './components/views/InventoryAgentAdminView';
 import { RoleSimulatorModal } from './components/RoleSimulatorModal';
 import { TicketNotificationPopup } from './components/common/TicketNotificationPopup';
 import { checkScreenAccess } from './data/authCredentials';
@@ -76,7 +77,8 @@ const SCREEN_A11Y_SUMMARIES: Record<ViewScreen, { title: string; summary: string
   auditoria: { title: 'Trilha de Auditoria e Logs', summary: 'Registros forenses de acessos e operações no PostgreSQL para conformidade LGPD.' },
   organograma: { title: 'Organograma Corporativo', summary: 'Estrutura hierárquica e setores da organização.' },
   configuracoes: { title: 'Configurações do Sistema', summary: 'Parâmetros de sistema, conexões e credenciais de segurança.' },
-  mobilidade: { title: 'Mobilidade Corporativa & Frotas', summary: 'Rastreamento de veículos, rotas com GPS físico real e gestão de deslocamentos.' }
+  mobilidade: { title: 'Mobilidade Corporativa & Frotas', summary: 'Rastreamento de veículos, rotas com GPS físico real e gestão de deslocamentos.' },
+  inventario_ti: { title: 'Inventário de TI & Agentes Windows', summary: 'Telemetria em tempo real de hardware, software e segurança de computadores Windows via Agente .NET 8.' }
 };
 
 function AppContent() {
@@ -147,6 +149,7 @@ function AppContent() {
     'clientes',
     'chamados',
     'equipamentos',
+    'inventario_ti',
     'mobilidade',
     'relatorios',
     'colaboradores',
@@ -317,7 +320,9 @@ function AppContent() {
           />
         );
       case 'equipamentos':
-        return <EquipmentView onNavigate={setCurrentScreen} />;
+        return <EquipmentView onNavigate={setCurrentScreen} currentUser={currentUser} />;
+      case 'inventario_ti':
+        return <InventoryAgentAdminView currentUser={currentUser} onNavigate={setCurrentScreen} />;
       case 'mobilidade':
         return <MobilityView currentUser={currentUser} />;
       case 'colaboradores':

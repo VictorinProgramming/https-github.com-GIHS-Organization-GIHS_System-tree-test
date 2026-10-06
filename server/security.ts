@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { query } from './db.js';
+import { query } from './db.ts';
 
 // =========================================================================
 // 1. CRIPTOGRAFIA ROBUSTA DE SENHAS (PBKDF2 COM SALT DE 128 BITS & SHA-512)

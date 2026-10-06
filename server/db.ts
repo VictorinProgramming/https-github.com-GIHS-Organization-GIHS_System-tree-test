@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { maskDatabaseUrl } from './security.js';
+import { maskDatabaseUrl } from './security.ts';
 
 const { Pool } = pg;
 

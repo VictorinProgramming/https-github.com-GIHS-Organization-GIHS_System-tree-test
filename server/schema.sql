@@ -836,6 +836,81 @@ SELECT
 FROM gihs_core.tickets
 GROUP BY sector;
 
+-- =========================================================================================
+-- 20. TABELAS DE INVENTÁRIO AUTOMATIZADO DE COMPUTADORES (AGENTE C# .NET 8)
+-- =========================================================================================
+CREATE TABLE IF NOT EXISTS gihs_core.inventory_agents (
+    id VARCHAR(64) PRIMARY KEY,
+    asset_id VARCHAR(64) REFERENCES gihs_core.equipment(id) ON DELETE SET NULL,
+    hostname VARCHAR(180) NOT NULL,
+    machine_uuid VARCHAR(120) NOT NULL UNIQUE,
+    serial_number VARCHAR(120),
+    manufacturer VARCHAR(180),
+    model VARCHAR(180),
+    domain_workgroup VARCHAR(180),
+    "current_user" VARCHAR(180),
+    agent_version VARCHAR(32) NOT NULL DEFAULT '1.0.0',
+    agent_status VARCHAR(32) NOT NULL DEFAULT 'ONLINE',
+    security_status VARCHAR(32) NOT NULL DEFAULT 'PROTEGIDO',
+    ip_address VARCHAR(64),
+    mac_addresses JSONB DEFAULT '[]'::jsonb,
+    os_info JSONB DEFAULT '{}'::jsonb,
+    memory_info JSONB DEFAULT '{}'::jsonb,
+    storage_info JSONB DEFAULT '{}'::jsonb,
+    security_info JSONB DEFAULT '{}'::jsonb,
+    software_count INTEGER DEFAULT 0,
+    request_full_inventory BOOLEAN DEFAULT FALSE,
+    last_heartbeat TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_inventory TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    first_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gihs_core.agent_software (
+    id BIGSERIAL PRIMARY KEY,
+    agent_id VARCHAR(64) NOT NULL REFERENCES gihs_core.inventory_agents(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    version VARCHAR(120),
+    publisher VARCHAR(255),
+    install_date VARCHAR(64),
+    installed_user VARCHAR(180),
+    install_location TEXT,
+    uninstall_string TEXT,
+    architecture VARCHAR(32),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gihs_core.agent_inventory_history (
+    id BIGSERIAL PRIMARY KEY,
+    agent_id VARCHAR(64) NOT NULL REFERENCES gihs_core.inventory_agents(id) ON DELETE CASCADE,
+    event_type VARCHAR(64) NOT NULL,
+    summary TEXT NOT NULL,
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gihs_core.agent_identity_conflicts (
+    id BIGSERIAL PRIMARY KEY,
+    agent_id VARCHAR(64) NOT NULL,
+    existing_asset_id VARCHAR(64) REFERENCES gihs_core.equipment(id) ON DELETE SET NULL,
+    hostname VARCHAR(180),
+    machine_uuid VARCHAR(120),
+    serial_number VARCHAR(120),
+    conflict_type VARCHAR(64) NOT NULL,
+    payload_data JSONB DEFAULT '{}'::jsonb,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+    resolved_by VARCHAR(120),
+    resolution_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    resolved_at TIMESTAMP WITH TIME ZONE
+);
+
+ALTER TABLE gihs_core.equipment
+ADD COLUMN IF NOT EXISTS agent_id VARCHAR(64),
+ADD COLUMN IF NOT EXISTS machine_uuid VARCHAR(120),
+ADD COLUMN IF NOT EXISTS last_agent_sync TIMESTAMP WITH TIME ZONE;
+
 -- Finalização
 GRANT USAGE ON SCHEMA gihs_core TO CURRENT_USER;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA gihs_core TO CURRENT_USER;

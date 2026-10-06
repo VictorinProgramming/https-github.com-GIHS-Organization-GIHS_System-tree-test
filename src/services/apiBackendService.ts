@@ -1,4 +1,14 @@
-import { Collaborator, SupportTicket, EquipmentItem, KnowledgeArticle } from '../types';
+import {
+  Collaborator,
+  SupportTicket,
+  EquipmentItem,
+  KnowledgeArticle,
+  InventoryAgent,
+  AgentSoftware,
+  AgentInventoryHistory,
+  AgentIdentityConflict,
+  InventoryAgentMetrics
+} from '../types';
 import { PontoRecord } from './pontoService';
 
 /**
@@ -578,6 +588,173 @@ export class ApiBackendService {
   async resetSystemLogo() {
     return this.request<{ success: boolean; data: any }>('/settings/logo/reset', {
       method: 'POST'
+    });
+  }
+
+  // =========================================================================
+  // Automated Inventory Agents (Windows C# .NET 8) — Acesso Exclusivo SUPER_ADMIN
+  // =========================================================================
+  async getInventoryAgents(params: {
+    search?: string;
+    status?: string;
+    os?: string;
+    security_status?: string;
+    page?: number;
+    limit?: number;
+    sort_by?: string;
+    sort_order?: 'ASC' | 'DESC';
+  } = {}, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: InventoryAgent[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.status) query.append('status', params.status);
+    if (params.os) query.append('os', params.os);
+    if (params.security_status) query.append('security_status', params.security_status);
+    if (params.page) query.append('page', String(params.page));
+    if (params.limit) query.append('limit', String(params.limit));
+    if (params.sort_by) query.append('sort_by', params.sort_by);
+    if (params.sort_order) query.append('sort_order', params.sort_order);
+
+    return this.request(`/inventory-agents?${query.toString()}`, {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async getInventoryAgentMetrics(currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: InventoryAgentMetrics;
+  }> {
+    return this.request('/inventory-agents/metrics', {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async getInventoryAgentById(id: string, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: InventoryAgent;
+  }> {
+    return this.request(`/inventory-agents/${id}`, {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async getInventoryAgentSoftware(id: string, params: { search?: string; limit?: number; offset?: number } = {}, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: AgentSoftware[];
+    total: number;
+  }> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.limit) query.append('limit', String(params.limit));
+    if (params.offset) query.append('offset', String(params.offset));
+
+    return this.request(`/inventory-agents/${id}/software?${query.toString()}`, {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async getInventoryAgentHistory(id: string, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: AgentInventoryHistory[];
+  }> {
+    return this.request(`/inventory-agents/${id}/history`, {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async getInventoryAgentConflicts(currentUser?: Collaborator): Promise<{
+    success: boolean;
+    data: AgentIdentityConflict[];
+  }> {
+    return this.request('/inventory-agents/conflicts', {
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async resolveInventoryAgentConflict(conflictId: number, resolution: { notes?: string; action?: string }, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return this.request(`/inventory-agents/conflicts/${conflictId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(resolution),
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async forceInventoryAgentScan(id: string, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return this.request(`/inventory-agents/${id}/force-scan`, {
+      method: 'POST',
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async testInventoryAgent(data: { hostname?: string; manufacturer?: string; model?: string; username?: string; os?: string } = {}, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    agentId?: string;
+    assetId?: string;
+    status?: string;
+    message?: string;
+    error?: string;
+  }> {
+    return this.request('/agent/v1/test-agent', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || ''
+      }
+    });
+  }
+
+  async ingestInventory(payload: any, currentUser?: Collaborator): Promise<{
+    success: boolean;
+    agentId?: string;
+    assetId?: string;
+    status?: string;
+    message?: string;
+  }> {
+    return this.request('/agent/v1/inventory', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'x-user-id': currentUser?.id || '',
+        'x-user-role': currentUser?.userRole || '',
+        'x-agent-key': 'GIHS-AGENT-SECURE-KEY-2026-ENTERPRISE'
+      }
     });
   }
 }

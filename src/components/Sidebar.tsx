@@ -19,7 +19,8 @@ import {
   PhoneCall,
   Navigation,
   X,
-  Accessibility
+  Accessibility,
+  Laptop
 } from 'lucide-react';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -107,7 +108,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'COMERCIAL & ATIVOS',
       items: [
         { id: 'clientes', label: 'Gestão de Clientes', icon: Building2, badge: 'Admin' },
-        { id: 'equipamentos', label: 'Gestão de Ativos', icon: HardDrive, badge: 'Admin' }
+        { id: 'equipamentos', label: 'Gestão de Ativos', icon: HardDrive, badge: 'Admin' },
+        ...(currentUser?.userRole === 'SUPER_ADMIN' ? [
+          { id: 'inventario_ti' as ViewScreen, label: 'Inventário de TI', icon: Laptop, badge: 'Agente' }
+        ] : [])
       ]
     },
     {

@@ -231,6 +231,13 @@ export interface EquipmentItem {
   location?: string;
   acquisitionDate?: string;
   valueBRL?: string;
+  agentId?: string;
+  machineUuid?: string;
+  lastAgentSync?: string;
+  agentStatus?: 'ONLINE' | 'OFFLINE' | 'CONFLICT';
+  securityStatus?: 'PROTEGIDO' | 'ALERTA' | 'VULNERAVEL';
+  specifications?: any;
+  serialNumber?: string;
 }
 
 export interface MarketingVideoItem {
@@ -264,7 +271,145 @@ export type ViewScreen =
   | 'relatorios'
   | 'auditoria'
   | 'organograma'
-  | 'configuracoes';
+  | 'configuracoes'
+  | 'inventario_ti';
+
+export interface InventoryAgent {
+  id: string;
+  asset_id?: string | null;
+  hostname: string;
+  machine_uuid: string;
+  serial_number?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  domain_workgroup?: string | null;
+  current_user?: string | null;
+  agent_version: string;
+  agent_status: 'ONLINE' | 'OFFLINE' | 'ALERT' | 'CONFLICT';
+  security_status: 'PROTEGIDO' | 'ALERTA' | 'VULNERAVEL';
+  ip_address?: string | null;
+  mac_addresses?: string[];
+  os_info?: {
+    name?: string;
+    edition?: string;
+    version?: string;
+    build?: string;
+    architecture?: string;
+    installed_at?: string | null;
+    last_boot?: string | null;
+  };
+  memory_info?: {
+    total_bytes: number;
+    used_bytes: number;
+    available_bytes: number;
+    used_percentage: number;
+    modules?: Array<{
+      bank_label?: string;
+      capacity_bytes: number;
+      manufacturer?: string;
+      speed_mhz?: number;
+      part_number?: string;
+      serial_number?: string;
+    }>;
+  };
+  storage_info?: {
+    physical_disks?: Array<{
+      model?: string;
+      serial_number?: string;
+      manufacturer?: string;
+      media_type?: string;
+      interface_type?: string;
+      total_capacity_bytes: number;
+    }>;
+    volumes?: Array<{
+      drive_letter: string;
+      file_system?: string;
+      total_bytes: number;
+      used_bytes: number;
+      free_bytes: number;
+      used_percentage: number;
+    }>;
+  };
+  security_info?: {
+    antivirus?: {
+      name?: string;
+      enabled: boolean;
+      up_to_date: boolean;
+    };
+    firewall?: {
+      enabled: boolean;
+    };
+    secure_boot?: {
+      enabled: boolean;
+    };
+    bitlocker?: {
+      status: string;
+      protection_enabled: boolean;
+    };
+  };
+  software_count: number;
+  request_full_inventory: boolean;
+  last_heartbeat: string;
+  last_inventory: string;
+  first_seen: string;
+  created_at: string;
+  updated_at: string;
+  asset_tag?: string;
+  asset_name?: string;
+  asset_sector?: string;
+  asset_status?: string;
+}
+
+export interface AgentSoftware {
+  id: number;
+  agent_id: string;
+  name: string;
+  version?: string;
+  publisher?: string;
+  install_date?: string;
+  installed_user?: string;
+  install_location?: string;
+  uninstall_string?: string;
+  architecture?: string;
+  created_at: string;
+}
+
+export interface AgentInventoryHistory {
+  id: number;
+  agent_id: string;
+  event_type: string;
+  summary: string;
+  details?: any;
+  created_at: string;
+}
+
+export interface AgentIdentityConflict {
+  id: number;
+  agent_id: string;
+  existing_asset_id?: string | null;
+  hostname?: string;
+  machine_uuid?: string;
+  serial_number?: string;
+  conflict_type: string;
+  payload_data: any;
+  status: 'PENDING' | 'RESOLVED' | 'IGNORED';
+  resolved_by?: string;
+  resolution_notes?: string;
+  created_at: string;
+  resolved_at?: string;
+}
+
+export interface InventoryAgentMetrics {
+  totalAgents: number;
+  onlineCount: number;
+  offlineCount: number;
+  conflictCount: number;
+  protectedCount: number;
+  alertCount: number;
+  totalRamBytes: number;
+  totalDiskBytes: number;
+  totalSoftwareTracked: number;
+}
 
 export interface OnCallShift {
   id: string;

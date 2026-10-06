@@ -1,5 +1,5 @@
-import { query } from '../db.js';
-import { KnowledgeArticle } from '../../src/types.js';
+import { query } from '../db.ts';
+import type { KnowledgeArticle } from '../../src/types.ts';
 
 export interface KnowledgeArticleRow {
   id: string;

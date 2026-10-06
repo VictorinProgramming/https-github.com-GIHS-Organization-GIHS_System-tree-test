@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { query, checkDatabaseConnection } from '../db.js';
+import type { Request, Response } from 'express';
+import { query, checkDatabaseConnection } from '../db.ts';
 
 interface SyncPayload {
   users?: any[];

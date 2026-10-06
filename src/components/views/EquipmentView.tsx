@@ -29,19 +29,21 @@ import {
   Trash2
 } from 'lucide-react';
 import { EQUIPMENT_DATA, SECTORS } from '../../data/mockData';
-import { EquipmentItem, ViewScreen } from '../../types';
+import { EquipmentItem, ViewScreen, Collaborator } from '../../types';
 import { AssetLabelGenerator } from '../patrimonio/AssetLabelGenerator';
 import { AssetLabelCard } from '../patrimonio/AssetLabelCard';
 import { BarcodeSVG } from '../patrimonio/BarcodeSVG';
 import { apiBackendService } from '../../services/apiBackendService';
+import { InventoryAgentAdminView } from './InventoryAgentAdminView';
 
 interface EquipmentViewProps {
   onNavigate?: (screen: ViewScreen) => void;
+  currentUser?: Collaborator;
 }
 
-export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
+export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate, currentUser }) => {
   // Main view state - Inicializado vazio sem nenhum equipamento pré-carregado
-  const [activeTab, setActiveTab] = useState<'inventory' | 'label_generator' | 'patrimony_team'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'it_agent' | 'label_generator' | 'patrimony_team'>('inventory');
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('TODOS');
@@ -69,7 +71,14 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
             assignee: item.assigned_user_name || item.assignee || 'Disponível',
             valueBRL: item.value_brl ? `R$ ${Number(item.value_brl).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
             status: item.status === 'OPERACIONAL' ? 'Em uso' : item.status === 'EM_ESTOQUE' ? 'Estoque' : 'Manutenção',
-            deliveryDate: item.delivery_date || item.acquisition_date || ''
+            deliveryDate: item.delivery_date || item.acquisition_date || '',
+            agentId: item.agent_id,
+            machineUuid: item.machine_uuid,
+            lastAgentSync: item.last_agent_sync,
+            agentStatus: item.agent_status,
+            securityStatus: item.security_status,
+            specifications: item.specifications,
+            serialNumber: item.serial_number
           }));
           setEquipmentList(mapped);
         } else {
@@ -82,6 +91,14 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
     };
     fetchEquipment();
   }, []);
+
+  const computersWithAgent = useMemo(() => {
+    return equipmentList.filter(i => !!i.agentId || i.category === 'Informática');
+  }, [equipmentList]);
+
+  const onlineAgentsCount = useMemo(() => {
+    return equipmentList.filter(i => i.agentStatus === 'ONLINE').length;
+  }, [equipmentList]);
 
   // Modal: + Cadastrar Ativo
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -280,6 +297,37 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
             <span>Remover Todos</span>
           </button>
 
+          {currentUser?.userRole === 'SUPER_ADMIN' && (
+            <>
+              <button
+                onClick={() => setActiveTab('it_agent')}
+                id="btn-patrimonio-agente-ti"
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md ${
+                  activeTab === 'it_agent'
+                    ? 'bg-blue-600 text-white shadow-blue-600/30'
+                    : 'bg-blue-950/80 hover:bg-blue-900 border border-blue-700/80 text-blue-200 hover:text-white'
+                }`}
+                title="Abrir tela de Agente de TI & Computadores diretamente no Patrimônio"
+              >
+                <Laptop className="w-4 h-4 text-blue-400" />
+                <span>Agente de TI & Computadores</span>
+                {onlineAgentsCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </button>
+
+              <a
+                href={`/api/agent/install.bat?serverUrl=${encodeURIComponent(window.location.origin)}`}
+                download="Instalar-Agente-GIHS.bat"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-700 text-blue-300 hover:text-white transition-all cursor-pointer shadow-sm"
+                title="Baixar executável do Agente (.bat) para instalar neste computador"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-400" />
+                <span>Baixar Agente (.bat)</span>
+              </a>
+            </>
+          )}
+
           <button
             onClick={() => {
               setSelectedItemForLabel(null);
@@ -373,7 +421,7 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
       )}
 
       {/* Main Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('inventory')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
@@ -385,6 +433,26 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
           <Layers className="w-4 h-4 text-amber-400" />
           <span>Inventário Geral de Bens ({filtered.length})</span>
         </button>
+
+        {currentUser?.userRole === 'SUPER_ADMIN' && (
+          <button
+            onClick={() => setActiveTab('it_agent')}
+            id="tab-agente-ti"
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'it_agent'
+                ? 'bg-blue-950/90 text-blue-300 border border-blue-700 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Laptop className="w-4 h-4 text-blue-400" />
+            <span>Agente de TI & Computadores ({computersWithAgent.length})</span>
+            {onlineAgentsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/40 animate-pulse">
+                {onlineAgentsCount} ONLINE
+              </span>
+            )}
+          </button>
+        )}
 
         <button
           onClick={() => {
@@ -411,6 +479,18 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
           <Building2 className="w-4 h-4 text-cyan-400" />
           <span>Equipe de Patrimônio & Vistorias</span>
         </button>
+
+        {currentUser?.userRole === 'SUPER_ADMIN' && onNavigate && (
+          <button
+            onClick={() => onNavigate('inventario_ti')}
+            id="btn-goto-inventario-ti"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 ml-auto"
+            title="Ir para a tela dedicada de Inventário de TI"
+          >
+            <span>Tela Dedicada do Agente</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          </button>
+        )}
       </div>
 
       {/* TAB 1: INVENTÁRIO GERAL DE BENS PATRIMONIADOS */}
@@ -543,6 +623,19 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
                           <div>
                             <span className="font-bold text-white block leading-tight">{item.type}</span>
                             <span className="text-[10px] text-slate-400">{item.category || 'Geral'}</span>
+                            {item.agentId && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveTab('it_agent');
+                                }}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-1 rounded text-[9px] font-bold bg-blue-950/90 text-blue-300 border border-blue-700/80 hover:bg-blue-900 transition-colors cursor-pointer"
+                                title="Ver telemetria do Agente GIHS neste computador"
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${item.agentStatus === 'ONLINE' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+                                <span>Agente {item.agentStatus === 'ONLINE' ? 'Online' : 'Sincronizado'}</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -550,8 +643,22 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
                       {/* Model */}
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-white line-clamp-1">{item.model}</div>
+                        {item.specifications && typeof item.specifications === 'object' && (
+                          <div className="text-[10px] text-cyan-400 font-mono mt-0.5 line-clamp-1">
+                            {[
+                              item.specifications.processor,
+                              item.specifications.ram_gb ? `${item.specifications.ram_gb}GB RAM` : null,
+                              item.specifications.os
+                            ].filter(Boolean).join(' • ')}
+                          </div>
+                        )}
+                        {item.serialNumber && (
+                          <div className="text-[9px] text-slate-500 font-mono">
+                            SN: {item.serialNumber}
+                          </div>
+                        )}
                         {item.valueBRL && (
-                          <span className="text-[10px] text-slate-500 font-mono">
+                          <span className="text-[10px] text-slate-500 font-mono block">
                             Valor: {item.valueBRL}
                           </span>
                         )}
@@ -582,9 +689,22 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
                         </span>
                       </td>
 
-                      {/* Label Action Button (User Requirement: Direct Label Creation & Printing) */}
+                      {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {item.agentId && (
+                            <button
+                              onClick={() => {
+                                setActiveTab('it_agent');
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-blue-300 font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                              title="Abrir telemetria e inventário deste computador no Agente"
+                            >
+                              <Laptop className="w-3.5 h-3.5 text-blue-400" />
+                              <span>Telemetria</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => {
                               setSelectedItemForLabel(item);
@@ -610,6 +730,22 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({ onNavigate }) => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB 4: AGENTE DE TI & COMPUTADORES (INTEGRADO DIRETAMENTE AO PATRIMÔNIO) */}
+      {activeTab === 'it_agent' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <InventoryAgentAdminView
+            currentUser={currentUser}
+            onNavigate={(screen) => {
+              if (screen === 'equipamentos') {
+                setActiveTab('inventory');
+              } else if (onNavigate) {
+                onNavigate(screen);
+              }
+            }}
+          />
         </div>
       )}
 

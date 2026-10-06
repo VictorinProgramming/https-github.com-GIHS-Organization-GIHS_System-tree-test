@@ -1,4 +1,4 @@
-import { query } from '../db.js';
+import { query } from '../db.ts';
 
 export interface EquipmentRow {
   id: string;
@@ -15,13 +15,32 @@ export interface EquipmentRow {
   specifications?: any;
   created_at: string;
   updated_at: string;
+  agent_id?: string;
+  machine_uuid?: string;
+  last_agent_sync?: string;
+  agent_status?: string;
+  security_status?: string;
+  agent_version?: string;
+  ip_address?: string;
+  software_count?: number;
+  last_heartbeat?: string;
 }
 
 export const equipmentRepository = {
   async findAll(): Promise<EquipmentRow[]> {
     const res = await query<EquipmentRow>(`
-      SELECT * FROM equipment
-      ORDER BY patrimony_tag ASC;
+      SELECT e.*, 
+             a.id as agent_id,
+             a.machine_uuid as machine_uuid,
+             a.agent_status,
+             a.security_status,
+             a.agent_version,
+             a.ip_address,
+             a.software_count,
+             a.last_heartbeat
+      FROM equipment e
+      LEFT JOIN gihs_core.inventory_agents a ON e.agent_id = a.id OR e.machine_uuid = a.machine_uuid
+      ORDER BY e.patrimony_tag ASC;
     `);
     return res.rows;
   },
@@ -61,7 +80,7 @@ export const equipmentRepository = {
       item.assigned_user_id || null,
       item.assigned_user_name || null,
       item.sector || 'TI',
-      item.status || 'Operacional',
+      (item.status || 'OPERACIONAL').toUpperCase() === 'EM USO' || (item.status || 'OPERACIONAL').toUpperCase() === 'OPERACIONAL' ? 'OPERACIONAL' : item.status || 'OPERACIONAL',
       item.acquisition_date || new Date().toISOString().split('T')[0],
       item.warranty_until || null,
       item.specifications ? JSON.stringify(item.specifications) : null

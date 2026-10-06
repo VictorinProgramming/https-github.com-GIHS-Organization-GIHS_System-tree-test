@@ -322,6 +322,14 @@ export const SCREEN_SECURITY_POLICIES: Record<ViewScreen, ScreenSecurityPolicy> 
     allowedRoles: ['SUPER_ADMIN'],
     restrictionReason: 'Parâmetros de infraestrutura, portas de rede, chaves de API e variáveis de ambiente são de acesso EXCLUSIVO do SUPER ADMINISTRADOR.',
     recommendedRoleToTest: 'SUPER_ADMIN'
+  },
+  inventario_ti: {
+    screen: 'inventario_ti',
+    screenTitle: 'Inventário de TI (Agente Windows)',
+    category: 'COMERCIAL & ATIVOS',
+    allowedRoles: ['SUPER_ADMIN'],
+    restrictionReason: 'O Painel de Inventário Automatizado e Telemetria de Agentes Windows é de acesso EXCLUSIVO do SUPER ADMINISTRADOR.',
+    recommendedRoleToTest: 'SUPER_ADMIN'
   }
 };
 
@@ -370,6 +378,15 @@ export function checkScreenAccess(
     restrictionReason: '',
     recommendedRoleToTest: 'SUPER_ADMIN' as UserRole
   };
+
+  // Proteção em duas camadas: Tela inventario_ti é estritamente restrita a SUPER_ADMIN
+  if (screen === 'inventario_ti') {
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+    return {
+      allowed: isSuperAdmin,
+      policy
+    };
+  }
 
   // Libera o acesso irrestrito a todos os utilizadores e papéis
   const allowed = true;

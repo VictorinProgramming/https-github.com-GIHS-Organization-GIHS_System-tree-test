@@ -1,4 +1,4 @@
-import { KnowledgeArticle } from '../types';
+import type { KnowledgeArticle } from '../types.ts';
 
 export const KNOWLEDGE_BASE_DATA: KnowledgeArticle[] = [
   // --- N1 (Suporte N1) ---

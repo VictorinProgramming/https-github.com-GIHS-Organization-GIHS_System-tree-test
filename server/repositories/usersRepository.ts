@@ -1,5 +1,5 @@
-import { query } from '../db.js';
-import { hashPassword, validatePasswordRules, sanitizeUser } from '../security.js';
+import { query } from '../db.ts';
+import { hashPassword, validatePasswordRules, sanitizeUser } from '../security.ts';
 
 export interface UserRow {
   id: string;
